@@ -98,6 +98,8 @@ textarea { resize: vertical; }
 .btn.danger { background: #fff; border-color: var(--danger); color: var(--danger); }
 .btn.danger:hover { background: #fef2f2; }
 .btn.small { padding: 5px 10px; font-size: 13px; }
+/* Tombol aksi utama di akhir form — beri jarak dari elemen di atasnya */
+#bc-form > button[type="submit"] { margin-top: 18px; }
 
 /* ---------- Badge ---------- */
 .badge {
