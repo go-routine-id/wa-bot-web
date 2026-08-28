@@ -42,7 +42,8 @@
 
         <div id="bc-template-wrap">
           <label for="bc-template">Pilih template</label>
-          <select id="bc-template" onchange="Broadcast.previewTemplate()"></select>
+          <div class="cs" data-cs-for="bc-template" data-cs-placeholder="Pilih template"></div>
+          <select id="bc-template" class="cs-native" onchange="Broadcast.previewTemplate()" hidden></select>
           <div id="bc-template-preview" class="muted"></div>
         </div>
 
@@ -54,7 +55,8 @@
         </div>
 
         <label for="bc-session">Sesi pengirim</label>
-        <select id="bc-session"></select>
+        <div class="cs" data-cs-for="bc-session" data-cs-placeholder="Pilih sesi pengirim" data-cs-searchable></div>
+        <select id="bc-session" class="cs-native" hidden></select>
 
         <label for="bc-recipients">Nomor tujuan (pisahkan dengan koma)</label>
         <textarea id="bc-recipients" rows="4" placeholder="6281234567890, 6289876543210, ..."></textarea>
@@ -62,9 +64,10 @@
         <div class="row">
           <div class="col">
             <label for="bc-mode">Mode proses</label>
-            <select id="bc-mode">
-              <option value="queue">Antrian (queue) — diproses satu per satu, lebih aman</option>
-              <option value="parallel">Jalan bersama (parallel) — lebih cepat, risiko ban lebih tinggi</option>
+            <div class="cs" data-cs-for="bc-mode" data-cs-placeholder="Pilih mode proses"></div>
+            <select id="bc-mode" class="cs-native" hidden>
+              <option value="queue" data-desc="Diproses satu per satu, lebih aman">Antrian (queue)</option>
+              <option value="parallel" data-desc="Lebih cepat, risiko ban lebih tinggi">Jalan bersama (parallel)</option>
             </select>
           </div>
           <div class="col">
@@ -116,6 +119,7 @@
   <script src="/js/app.js"></script>
   <script src="/js/connection.js"></script>
   <script src="/js/templates.js"></script>
+  <script src="/js/customSelect.js"></script>
   <script src="/js/broadcast.js"></script>
   <script src="/js/history.js"></script>
 </body>

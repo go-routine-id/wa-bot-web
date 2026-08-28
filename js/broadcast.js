@@ -15,8 +15,12 @@ const Broadcast = (() => {
       templatesCache = await API.get('/api/templates');
       const sel = document.getElementById('bc-template');
       sel.innerHTML = templatesCache
-        .map((t) => `<option value="${t.id}">${escapeHtml(t.name)}${t.mediaPath ? ' 🖼️' : ''}</option>`)
+        .map(
+          (t) =>
+            `<option value="${t.id}"${t.mediaPath ? ' data-media="1"' : ''}>${escapeHtml(t.name)}</option>`
+        )
         .join('');
+      CustomSelect.refreshAll(); // custom dropdown ikut render ulang
       previewTemplate();
       loadSessions(); // sesi pengirim — refresh tiap tab create dibuka
     } catch (err) {
@@ -44,9 +48,7 @@ const Broadcast = (() => {
         sel.innerHTML = connected
           .map(
             (s) =>
-              `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}${
-                s.userInfo?.number ? ' (' + escapeHtml(s.userInfo.number) + ')' : ''
-              }</option>`
+              `<option value="${escapeHtml(s.id)}"${s.userInfo?.number ? ` data-number="${s.userInfo.number}"` : ''}>${escapeHtml(s.name)}</option>`
           )
           .join('');
       }
@@ -54,9 +56,10 @@ const Broadcast = (() => {
       sel.innerHTML += connecting
         .map(
           (s) =>
-            `<option value="${escapeHtml(s.id)}" disabled>${escapeHtml(s.name)} (menghubungkan…)</option>`
+            `<option value="${escapeHtml(s.id)}" data-status="connecting" disabled>${escapeHtml(s.name)}</option>`
         )
         .join('');
+      CustomSelect.refreshAll(); // custom dropdown ikut render ulang
     } catch (err) {
       toast(err.message, 'error');
     }
