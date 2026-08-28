@@ -1,7 +1,9 @@
 'use strict';
 
 const Connection = (() => {
-  let timer = null;
+  let timer = null;       // poll status (2.5s)
+  let countdown = null;   // interval hitung mundur QR (1s)
+  let lastStatus = null;  // status terakhir dari API (untuk countdown)
 
   function start() {
     if (timer) return;
@@ -19,7 +21,34 @@ const Connection = (() => {
     }
   }
 
+  function stopCountdown() {
+    if (countdown) {
+      clearInterval(countdown);
+      countdown = null;
+    }
+  }
+
+  // Hitung mundur validitas QR. Saat habis → refresh() (backend sudah qr_expired,
+  // render otomatis menampilkan tombol manual).
+  function startCountdown() {
+    if (countdown) return;
+    countdown = setInterval(() => {
+      if (!lastStatus || lastStatus.status !== 'qr' || !lastStatus.qrExpiresAt) {
+        stopCountdown();
+        return;
+      }
+      const remain = Math.max(0, Math.round((lastStatus.qrExpiresAt - Date.now()) / 1000));
+      const num = document.getElementById('qr-countdown-num');
+      if (num) num.textContent = remain;
+      if (remain <= 0) {
+        stopCountdown();
+        refresh();
+      }
+    }, 1000);
+  }
+
   function render(s) {
+    stopCountdown(); // reset hitung mundur tiap render; QR branch menyalakannya lagi
     const el = document.getElementById('conn-content');
 
     if (s.connected) {
@@ -35,12 +64,25 @@ const Connection = (() => {
     }
 
     if (s.hasQr) {
+      const remain = Math.max(0, Math.round(((s.qrExpiresAt || 0) - Date.now()) / 1000));
+      lastStatus = s;
       el.innerHTML = `
         <div class="conn-box">
           <h3>Scan QR ini dengan WhatsApp di HP kamu</h3>
           <p class="muted">Buka WhatsApp → Setelan → Perangkat tertaut → Tautkan perangkat</p>
           <img class="qr" src="${s.qrDataUrl}" alt="QR Code">
-          <p class="muted">QR diperbarui otomatis. Status: menunggu scan…</p>
+          <p class="muted">QR berlaku <strong id="qr-countdown-num">${remain}</strong> detik lagi</p>
+          <button class="btn" onclick="Connection.rescan()">Request QR baru</button>
+        </div>`;
+      startCountdown();
+      return;
+    }
+
+    if (s.status === 'qr_expired') {
+      el.innerHTML = `
+        <div class="conn-box">
+          <p class="conn-error">⚠️ ${escapeHtml(s.lastError || 'QR kedaluwarsa')}</p>
+          <button class="btn" onclick="Connection.rescan()">Request QR baru</button>
         </div>`;
       return;
     }
