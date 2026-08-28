@@ -115,8 +115,8 @@ const Broadcast = (() => {
       document.getElementById('bc-recipients').value = '';
       document.getElementById('bc-message').value = '';
       document.getElementById('bc-image').value = '';
-      // Buka tab history
-      App.showTab('history');
+      // Pindah ke tab history (URL ikut berubah ke /history)
+      Router.navigate('history');
     } catch (err) {
       toast(err.message, 'error');
     }

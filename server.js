@@ -55,6 +55,13 @@ const server = http.createServer((req, res) => {
 
   fs.stat(filePath, (err, stat) => {
     if (err || !stat.isFile()) {
+      // SPA fallback: path tanpa ekstensi file (route menu: /sessions, /create,
+      // /templates, /history) bukan file fisik → kirim index.html; routing
+      // History API di frontend (js/router.js) yang menentukan tab aktif.
+      if (!path.extname(urlPath)) {
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        return fs.createReadStream(path.join(ROOT, 'index.html')).pipe(res);
+      }
       res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
       return res.end('404 Not Found');
     }

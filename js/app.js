@@ -10,16 +10,15 @@ const App = (() => {
     });
 
     // refresh konten sesuai tab yang dibuka
+    if (name === 'connection') Connection.refresh(); // render sesi langsung, bukan nunggu poll
     if (name === 'templates') Templates.load();
     if (name === 'history') History.load();
     if (name === 'create') Broadcast.loadTemplates();
   }
 
   function init() {
-    document.querySelectorAll('.tab-btn').forEach((btn) => {
-      btn.addEventListener('click', () => showTab(btn.dataset.tab));
-    });
     Connection.start(); // poll status setiap 2.5 detik (render hanya saat tab aktif)
+    Router.init();      // URL routing: back/forward, deep-link, klik menu
   }
 
   return { showTab, init };

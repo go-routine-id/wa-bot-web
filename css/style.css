@@ -42,6 +42,8 @@ body {
   border-radius: 6px;
   font-size: 14px;
   cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
 }
 .tab-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
 .tab-btn.active { background: #fff; color: var(--primary); font-weight: 600; }

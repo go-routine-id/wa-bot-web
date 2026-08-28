@@ -1,0 +1,77 @@
+'use strict';
+
+/**
+ * Router berbasis History API (path bersih): setiap menu punya URL sendiri
+ * (/sessions, /create, /templates, /history) supaya back/forward browser dan
+ * deep-link berfungsi. Server statis memakai SPA fallback (server.js) — path
+ * tanpa ekstensi file selalu disajikan index.html; tab yang aktif ditentukan
+ * di sini dari URL.
+ */
+const Router = (() => {
+  // Path → tab (tab = id section `tab-<tab>` di index.html)
+  const ROUTES = [
+    { path: '/', tab: 'connection' },
+    { path: '/sessions', tab: 'connection' },
+    { path: '/create', tab: 'create' },
+    { path: '/templates', tab: 'templates' },
+    { path: '/history', tab: 'history' },
+  ];
+
+  function tabFromPath(pathname) {
+    const route = ROUTES.find((r) => r.path === pathname);
+    return route ? route.tab : null;
+  }
+
+  /** Path kanonik sebuah tab (tab connection → /sessions, bukan "/"). */
+  function pathFromTab(tab) {
+    const route = ROUTES.find((r) => r.tab === tab && r.path !== '/');
+    return route ? route.path : '/sessions';
+  }
+
+  /** Pindah tab tanpa reload: update URL (pushState) lalu render konten. */
+  function navigate(tab) {
+    const path = pathFromTab(tab);
+    if (window.location.pathname !== path) {
+      window.history.pushState({ tab }, '', path);
+    }
+    App.showTab(tab);
+  }
+
+  /** Back/forward browser → render tab sesuai URL saat ini. */
+  function renderFromLocation() {
+    const path = window.location.pathname;
+    let tab = tabFromPath(path);
+    if (!tab) {
+      // path tak dikenal → fallback halaman default (tanpa menambah history)
+      window.history.replaceState({ tab: 'connection' }, '', '/sessions');
+      tab = 'connection';
+    } else if (path === '/') {
+      // kanonik: "/" disamakan ke /sessions
+      window.history.replaceState({ tab: 'connection' }, '', '/sessions');
+      tab = 'connection';
+    }
+    App.showTab(tab);
+  }
+
+  function init() {
+    window.addEventListener('popstate', renderFromLocation);
+
+    // Klik menu → pushState (bukan full reload). cmd/ctrl/shift+klik tetap
+    // buka tab baru di browser (default anchor dibiarkan berjalan).
+    document.addEventListener('click', (e) => {
+      const a = e.target.closest('a.tab-btn');
+      if (!a || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+      const tab = tabFromPath(a.getAttribute('href'));
+      if (tab) {
+        e.preventDefault();
+        navigate(tab);
+      }
+    });
+
+    renderFromLocation(); // deep-link / refresh di path non-root
+  }
+
+  return { init, navigate, tabFromPath };
+})();
+
+window.Router = Router;

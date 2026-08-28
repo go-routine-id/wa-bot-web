@@ -25,7 +25,7 @@ Setelah itu:
    ```bash
    CORS_ORIGINS=http://localhost:5173
    ```
-4. Buka `http://localhost:5173` → tab **Sesi WhatsApp** → tambah sesi & scan QR.
+4. Buka `http://localhost:5173` (tiap menu punya URL sendiri — `http://localhost:5173/sessions`, `/create`, `/templates`, `/history`; back/forward browser & deep-link berfungsi). Mulai dari tab **Sesi WhatsApp** → tambah sesi & scan QR.
 
 ## Memakai
 
@@ -66,7 +66,8 @@ index.html      # entry UI
 css/style.css
 js/
   api.js        # fetch wrapper (prefix base URL)
-  app.js        # init tab
+  router.js     # URL routing (History API): /sessions, /create, /templates, /history
+  app.js        # init tab + render aktif
   connection.js # session manager: list kartu sesi + QR + countdown + tambah/rename/hapus/logout/rescan
   templates.js  # CRUD template
   broadcast.js  # buat broadcast (dropdown sesi pengirim + submit sessionId)
