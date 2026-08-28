@@ -46,6 +46,13 @@ const server = http.createServer((req, res) => {
     return res.end('Forbidden');
   }
 
+  // Tolak file tersembunyi (dotfiles: .git, .env, dll.)
+  const rel = path.relative(ROOT, filePath);
+  if (rel.split(path.sep).some((seg) => seg.startsWith('.'))) {
+    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+    return res.end('404 Not Found');
+  }
+
   fs.stat(filePath, (err, stat) => {
     if (err || !stat.isFile()) {
       res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });

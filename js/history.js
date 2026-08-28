@@ -78,8 +78,8 @@ const History = (() => {
         <td>${b.createdAt}</td>
         <td>
           <button class="btn small" onclick="History.openDetail(${b.id})">Detail</button>
-          ${b.failedCount > 0 && ['completed', 'failed'].includes(b.status)
-            ? `<button class="btn small" onclick="History.retryFailed(${b.id}, ${b.failedCount})">Retry gagal (${b.failedCount})</button>`
+          ${b.retryableFailedCount > 0 && ['completed', 'failed'].includes(b.status)
+            ? `<button class="btn small" onclick="History.retryFailed(${b.id}, ${b.retryableFailedCount})">Retry gagal (${b.retryableFailedCount})</button>`
             : ''}
           ${['pending', 'running'].includes(b.status)
             ? `<button class="btn small danger" onclick="History.cancel(${b.id})">Cancel</button>`
@@ -128,7 +128,8 @@ const History = (() => {
       )
       .join('');
 
-    const canRetry = counts.failed > 0 && ['completed', 'failed'].includes(b.status);
+    // retryableFailedCount (dari backend) = gagal terkirim TANPA 'invalid number'
+    const canRetry = b.retryableFailedCount > 0 && ['completed', 'failed'].includes(b.status);
 
     el.classList.remove('hidden');
     el.innerHTML = `
@@ -136,7 +137,7 @@ const History = (() => {
         <button class="btn small" onclick="History.closeDetail()">← Kembali</button>
         <h3>Broadcast #${b.id} <span class="badge badge-${b.status}">${b.status}</span></h3>
         ${canRetry
-          ? `<button class="btn small" onclick="History.retryFailed(${b.id}, ${counts.failed})">Kirim ulang yang gagal (${counts.failed})</button>`
+          ? `<button class="btn small" onclick="History.retryFailed(${b.id}, ${b.retryableFailedCount})">Kirim ulang yang gagal (${b.retryableFailedCount})</button>`
           : ''}
       </div>
       <div class="progress"><div class="progress-bar" style="width:${pct}%"></div></div>
