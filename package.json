@@ -1,0 +1,14 @@
+{
+  "name": "wa-bot-web",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Frontend WhatsApp bot (kontrol koneksi, template, broadcast, history) — vanilla JS, terpisah dari wa-bot-service",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
+}
