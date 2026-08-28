@@ -1,8 +1,12 @@
 'use strict';
 
+/**
+ * History broadcast: dua mode — list (/history) dan halaman detail
+ * (/history/:id). Mode detail di-derive dari URL, jadi deep-link, back,
+ * dan forward browser selalu konsisten dengan yang tampil.
+ */
 const History = (() => {
   let pollTimer = null;
-  let activeId = null;
 
   function tabActive() {
     const el = document.getElementById('tab-history');
@@ -11,6 +15,18 @@ const History = (() => {
 
   function hasActive(list) {
     return list.some((b) => ['pending', 'running'].includes(b.status));
+  }
+
+  /** id broadcast dari URL bila sedang di halaman detail, selain itu null. */
+  function currentDetailId() {
+    const m = window.location.pathname.match(/^\/history\/(\d+)$/);
+    return m ? Number(m[1]) : null;
+  }
+
+  /** Tampilkan list atau halaman detail (yang satu aktif, satunya tersembunyi). */
+  function setDetailMode(on) {
+    document.getElementById('hist-list').classList.toggle('hidden', on);
+    document.getElementById('hist-detail').classList.toggle('hidden', !on);
   }
 
   /** Mulai poll tiap 2 dtk selama tab aktif & masih ada broadcast berjalan; berhenti otomatis. */
@@ -30,8 +46,14 @@ const History = (() => {
   }
 
   async function load() {
+    // Sedang di halaman detail — list tidak dirender (renderDetailPage yang isi).
+    if (currentDetailId() != null) {
+      document.getElementById('hist-list').classList.add('hidden');
+      return;
+    }
     try {
       const list = await API.get('/api/broadcasts');
+      setDetailMode(false);
       renderList(list);
       ensurePolling(list);
     } catch (err) {
@@ -41,26 +63,30 @@ const History = (() => {
     }
   }
 
-  /** Tick polling: refresh list (dan detail bila sedang dibuka), lalu atur lanjut/henti. */
+  /** Tick polling: refresh sesuai mode (detail atau list), lalu atur lanjut/henti. */
   async function tick() {
     if (!tabActive()) {
       stopPolling();
       return;
     }
     try {
-      const list = await API.get('/api/broadcasts');
-      renderList(list);
-      if (activeId != null) {
-        const data = await API.get(`/api/broadcasts/${activeId}`);
+      const detailId = currentDetailId();
+      if (detailId != null) {
+        const data = await API.get(`/api/broadcasts/${detailId}`);
         renderDetail(data.broadcast, data.recipients);
+        ensurePolling([data.broadcast]);
+      } else {
+        const list = await API.get('/api/broadcasts');
+        renderList(list);
+        ensurePolling(list);
       }
-      ensurePolling(list);
     } catch (_) {
       // error sementara — biarkan timer lanjut
     }
   }
 
   function renderList(list) {
+    document.getElementById('hist-detail').classList.add('hidden');
     const el = document.getElementById('hist-list');
     if (list.length === 0) {
       el.innerHTML = '<p class="muted">Belum ada broadcast.</p>';
@@ -98,15 +124,27 @@ const History = (() => {
       </table>`;
   }
 
-  async function openDetail(id) {
-    activeId = id;
+  /** Dari list: buka halaman detail (URL berubah ke /history/:id). */
+  function openDetail(id) {
+    Router.goDetail(id);
+  }
+
+  /** Render halaman detail broadcast #id (dipanggil router saat URL /history/:id). */
+  async function renderDetailPage(id) {
     try {
       const data = await API.get(`/api/broadcasts/${id}`);
+      setDetailMode(true);
       renderDetail(data.broadcast, data.recipients);
       ensurePolling([data.broadcast]);
     } catch (err) {
       toast(err.message, 'error');
+      Router.navigate('history'); // detail tak ditemukan → balik ke list
     }
+  }
+
+  /** Tombol "← Kembali": ke list history (/history). */
+  function backToList() {
+    Router.navigate('history');
   }
 
   function renderDetail(b, recipients) {
@@ -132,10 +170,9 @@ const History = (() => {
     // retryableFailedCount (dari backend) = gagal terkirim TANPA 'invalid number'
     const canRetry = b.retryableFailedCount > 0 && ['completed', 'failed'].includes(b.status);
 
-    el.classList.remove('hidden');
     el.innerHTML = `
       <div class="detail-head">
-        <button class="btn small" onclick="History.closeDetail()">← Kembali</button>
+        <button class="btn small" onclick="History.backToList()">← Kembali ke list</button>
         <h3>Broadcast #${b.id} <span class="badge badge-${b.status}">${b.status}</span></h3>
         ${canRetry
           ? `<button class="btn small" onclick="History.retryFailed(${b.id}, ${b.retryableFailedCount})">Kirim ulang yang gagal (${b.retryableFailedCount})</button>`
@@ -156,19 +193,13 @@ const History = (() => {
       </table>`;
   }
 
-  function closeDetail() {
-    activeId = null;
-    document.getElementById('hist-detail').classList.add('hidden');
-    // Timer list tetap dikelola ensurePolling di tick berikutnya
-  }
-
   async function cancel(id) {
     if (!confirm(`Batalkan broadcast #${id}? Sisa recipient akan di-skip.`)) return;
     try {
       await API.post(`/api/broadcasts/${id}/cancel`);
       toast('Broadcast dibatalkan', 'ok');
-      await load();
-      if (activeId === id) await openDetail(id);
+      if (currentDetailId() === id) await renderDetailPage(id);
+      else await load();
     } catch (err) {
       toast(err.message, 'error');
     }
@@ -180,14 +211,14 @@ const History = (() => {
     try {
       const created = await API.post(`/api/broadcasts/${id}/retry`);
       toast(`Broadcast retry #${created.id} dibuat (${created.totalRecipients} penerima)`, 'ok');
-      await load();
-      if (activeId === id) await openDetail(id);
+      if (currentDetailId() === id) await renderDetailPage(id);
+      else await load();
     } catch (err) {
       toast(err.message, 'error');
     }
   }
 
-  return { load, openDetail, closeDetail, cancel, retryFailed };
+  return { load, openDetail, renderDetailPage, backToList, cancel, retryFailed };
 })();
 
 window.History = History;

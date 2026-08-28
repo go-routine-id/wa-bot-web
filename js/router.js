@@ -5,7 +5,7 @@
  * (/sessions, /create, /templates, /history) supaya back/forward browser dan
  * deep-link berfungsi. Server statis memakai SPA fallback (server.js) — path
  * tanpa ekstensi file selalu disajikan index.html; tab yang aktif ditentukan
- * di sini dari URL.
+ * di sini dari URL. Detail broadcast punya halaman sendiri di /history/:id.
  */
 const Router = (() => {
   // Path → tab (tab = id section `tab-<tab>` di index.html)
@@ -16,6 +16,9 @@ const Router = (() => {
     { path: '/templates', tab: 'templates' },
     { path: '/history', tab: 'history' },
   ];
+
+  // Halaman detail broadcast: /history/:id (angka id broadcast)
+  const DETAIL_RE = /^\/history\/(\d+)$/;
 
   function tabFromPath(pathname) {
     const route = ROUTES.find((r) => r.path === pathname);
@@ -37,9 +40,25 @@ const Router = (() => {
     App.showTab(tab);
   }
 
-  /** Back/forward browser → render tab sesuai URL saat ini. */
+  /** Buka halaman detail broadcast: pushState ke /history/:id lalu render detail. */
+  function goDetail(id) {
+    const path = `/history/${id}`;
+    if (window.location.pathname !== path) {
+      window.history.pushState({ detailId: id }, '', path);
+    }
+    History.renderDetailPage(id);
+  }
+
+  /** Back/forward browser → render tab/halaman sesuai URL saat ini. */
   function renderFromLocation() {
     const path = window.location.pathname;
+    const detailMatch = path.match(DETAIL_RE);
+    if (detailMatch) {
+      // Halaman detail broadcast → tab history aktif + render detail.
+      App.showTab('history');
+      History.renderDetailPage(Number(detailMatch[1]));
+      return;
+    }
     let tab = tabFromPath(path);
     if (!tab) {
       // path tak dikenal → fallback halaman default (tanpa menambah history)
@@ -71,7 +90,7 @@ const Router = (() => {
     renderFromLocation(); // deep-link / refresh di path non-root
   }
 
-  return { init, navigate, tabFromPath };
+  return { init, navigate, tabFromPath, goDetail };
 })();
 
 window.Router = Router;

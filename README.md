@@ -25,7 +25,7 @@ Setelah itu:
    ```bash
    CORS_ORIGINS=http://localhost:5173
    ```
-4. Buka `http://localhost:5173` (tiap menu punya URL sendiri — `http://localhost:5173/sessions`, `/create`, `/templates`, `/history`; back/forward browser & deep-link berfungsi). Mulai dari tab **Sesi WhatsApp** → tambah sesi & scan QR.
+4. Buka `http://localhost:5173` (tiap menu punya URL sendiri — `http://localhost:5173/sessions`, `/create`, `/templates`, `/history`; back/forward browser & deep-link berfungsi). Detail broadcast punya halaman sendiri: `/history/:id` (mis. `/history/13`). Mulai dari tab **Sesi WhatsApp** → tambah sesi & scan QR.
 
 ## Memakai
 
@@ -54,7 +54,7 @@ Buat template teks (opsional + 1 gambar) untuk dipakai berulang di broadcast. Te
 ### 4. History (tab "History")
 
 - Daftar broadcast + status per recipient: `menunggu` / `terkirim` / `gagal` / `dibatalkan`, plus kolom **Sesi** (pengirim broadcast ini).
-- Detail broadcast menampilkan sesi pengirim.
+- **Detail broadcast** dibuka di halaman terpisah `/history/:id` (klik **Detail** di baris list, atau buka URL langsung) — menampilkan sesi pengirim, progress, isi pesan, dan tabel recipient. Tombol **← Kembali ke list** atau back browser kembali ke `/history`.
 - Tombol **"Kirim ulang yang gagal"** → buat broadcast baru HANYA dari nomor yang gagal (nomor yang sudah terkirim tidak dikirim lagi), memakai sesi pengirim yang sama.
 
 ## Struktur
@@ -71,7 +71,7 @@ js/
   connection.js # session manager: list kartu sesi + QR + countdown + tambah/rename/hapus/logout/rescan
   templates.js  # CRUD template
   broadcast.js  # buat broadcast (dropdown sesi pengirim + submit sessionId)
-  history.js    # history (kolom sesi) + retry gagal
+  history.js    # history (kolom sesi) + halaman detail /history/:id + retry gagal
 ```
 
 ## Troubleshooting
