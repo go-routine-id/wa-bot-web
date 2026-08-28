@@ -113,6 +113,14 @@ textarea { resize: vertical; }
 .badge-failed   { background: #fee2e2; color: #991b1b; }
 .badge-cancelled{ background: #e5e7eb; color: #374151; }
 .badge-skipped  { background: #e5e7eb; color: #374151; }
+/* Status sesi WhatsApp */
+.badge-uninitialized { background: #e5e7eb; color: #374151; }
+.badge-connecting    { background: #dbeafe; color: #1e40af; }
+.badge-qr            { background: #ede9fe; color: #5b21b6; }
+.badge-connected     { background: #dcfce7; color: #166534; }
+.badge-disconnected  { background: #fee2e2; color: #991b1b; }
+.badge-auth_failure  { background: #fee2e2; color: #991b1b; }
+.badge-qr_expired    { background: #fef3c7; color: #92400e; }
 
 /* ---------- Table ---------- */
 table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
@@ -120,7 +128,7 @@ th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--bo
 th { background: #f9fafb; font-size: 13px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--muted); }
 tr:last-child td { border-bottom: none; }
 
-/* ---------- Connection ---------- */
+/* ---------- Connection / Sessions ---------- */
 .conn-box {
   background: var(--card);
   border: 1px solid var(--border);
@@ -131,6 +139,18 @@ tr:last-child td { border-bottom: none; }
 .conn-box img.qr { width: 260px; height: 260px; border: 1px solid var(--border); border-radius: 8px; }
 .conn-connected { font-size: 18px; margin-bottom: 8px; }
 .conn-error { color: var(--danger); margin-bottom: 12px; }
+
+.session-add { display: flex; gap: 8px; margin-bottom: 16px; }
+.session-add input { flex: 1; max-width: 360px; }
+.session-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+.session-card { text-align: left; padding: 20px; }
+.session-card h4 { margin: 8px 0 4px; }
+.session-card img.qr { display: block; margin: 10px auto; }
+.session-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; margin-bottom: 8px; font-size: 16px;
+}
+.session-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
 
 /* ---------- Misc ---------- */
 .muted { color: var(--muted); font-weight: 400; }

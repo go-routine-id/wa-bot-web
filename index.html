@@ -11,7 +11,7 @@
   <header class="topbar">
     <div class="brand">📣 WA Broadcast</div>
     <nav class="tabs">
-      <button class="tab-btn active" data-tab="connection">Koneksi</button>
+      <button class="tab-btn active" data-tab="connection">Sesi WhatsApp</button>
       <button class="tab-btn" data-tab="create">Buat Broadcast</button>
       <button class="tab-btn" data-tab="templates">Template</button>
       <button class="tab-btn" data-tab="history">History</button>
@@ -19,9 +19,14 @@
   </header>
 
   <main>
-    <!-- ============ Koneksi ============ -->
+    <!-- ============ Sesi WhatsApp ============ -->
     <section id="tab-connection" class="tab-section active">
-      <h2>Koneksi WhatsApp</h2>
+      <h2>Sesi WhatsApp</h2>
+      <p class="muted">Satu sesi = satu nomor WhatsApp ter-pair. Broadcast dikirim dari sesi yang kamu pilih.</p>
+      <div class="session-add">
+        <input type="text" id="conn-new-name" placeholder="Nama sesi baru, cth: Promo Ramadan">
+        <button class="btn primary" onclick="Connection.add()">Tambah Sesi</button>
+      </div>
       <div id="conn-content">Memuat…</div>
     </section>
 
@@ -47,6 +52,9 @@
           <label for="bc-image">Gambar (opsional)</label>
           <input type="file" id="bc-image" accept="image/*">
         </div>
+
+        <label for="bc-session">Sesi pengirim</label>
+        <select id="bc-session"></select>
 
         <label for="bc-recipients">Nomor tujuan (pisahkan dengan koma)</label>
         <textarea id="bc-recipients" rows="4" placeholder="6281234567890, 6289876543210, ..."></textarea>

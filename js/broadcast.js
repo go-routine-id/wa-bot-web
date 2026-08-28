@@ -18,6 +18,45 @@ const Broadcast = (() => {
         .map((t) => `<option value="${t.id}">${escapeHtml(t.name)}${t.mediaPath ? ' 🖼️' : ''}</option>`)
         .join('');
       previewTemplate();
+      loadSessions(); // sesi pengirim — refresh tiap tab create dibuka
+    } catch (err) {
+      toast(err.message, 'error');
+    }
+  }
+
+  /**
+   * Isi dropdown "Sesi pengirim": sesi connected (pilihable, label nama + nomor);
+   * sesi masih connecting disertakan sebagai opsi disabled supaya dropdown
+   * tidak kosong saat reconnect setelah restart.
+   */
+  async function loadSessions() {
+    try {
+      const sessions = await API.get('/api/sessions');
+      const sel = document.getElementById('bc-session');
+      if (!sel) return;
+      const connected = sessions.filter((s) => s.connected);
+      const connecting = sessions.filter((s) => s.status === 'connecting');
+      if (connected.length === 0) {
+        const anyPairing = sessions.some((s) => ['qr', 'uninitialized'].includes(s.status));
+        sel.innerHTML =
+          `<option value="">— tidak ada sesi terhubung${anyPairing ? ' (scan QR di tab Sesi WhatsApp)' : ''} —</option>`;
+      } else {
+        sel.innerHTML = connected
+          .map(
+            (s) =>
+              `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}${
+                s.userInfo?.number ? ' (' + escapeHtml(s.userInfo.number) + ')' : ''
+              }</option>`
+          )
+          .join('');
+      }
+      // Opsi disabled untuk sesi yang masih menyambung (baru jadi selectable saat connected)
+      sel.innerHTML += connecting
+        .map(
+          (s) =>
+            `<option value="${escapeHtml(s.id)}" disabled>${escapeHtml(s.name)} (menghubungkan…)</option>`
+        )
+        .join('');
     } catch (err) {
       toast(err.message, 'error');
     }
@@ -38,14 +77,19 @@ const Broadcast = (() => {
     const recipients = document.getElementById('bc-recipients').value.trim();
     const ratePerMinute = Number(document.getElementById('bc-rate').value);
     const mode = document.getElementById('bc-mode').value;
+    const sessionId = document.getElementById('bc-session').value;
 
     if (!recipients) {
       toast('Nomor tujuan wajib diisi', 'error');
       return;
     }
+    if (!sessionId) {
+      toast('Pilih sesi pengirim terlebih dahulu', 'error');
+      return;
+    }
 
     try {
-      const body = { mode, ratePerMinute, recipients };
+      const body = { mode, ratePerMinute, sessionId, recipients };
 
       if (source === 'template') {
         body.templateId = Number(document.getElementById('bc-template').value);
@@ -78,7 +122,7 @@ const Broadcast = (() => {
     }
   }
 
-  return { toggleSource, loadTemplates, previewTemplate, submit };
+  return { toggleSource, loadTemplates, loadSessions, previewTemplate, submit };
 })();
 
 window.Broadcast = Broadcast;

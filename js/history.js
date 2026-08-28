@@ -72,6 +72,7 @@ const History = (() => {
       <tr>
         <td>#${b.id}</td>
         <td><span class="badge badge-${b.status}">${b.status}</span></td>
+        <td>${escapeHtml(b.sessionName || '—')}</td>
         <td>${b.mode}</td>
         <td>${b.ratePerMinute}/mnt</td>
         <td>${b.sentCount} / ${b.failedCount} / ${b.totalRecipients}</td>
@@ -91,7 +92,7 @@ const History = (() => {
     el.innerHTML = `
       <table>
         <thead>
-          <tr><th>ID</th><th>Status</th><th>Mode</th><th>Rate</th><th>Sent/Fail/Total</th><th>Dibuat</th><th>Aksi</th></tr>
+          <tr><th>ID</th><th>Status</th><th>Sesi</th><th>Mode</th><th>Rate</th><th>Sent/Fail/Total</th><th>Dibuat</th><th>Aksi</th></tr>
         </thead>
         <tbody>${rows}</tbody>
       </table>`;
@@ -144,6 +145,7 @@ const History = (() => {
       <p class="muted">
         ${b.sentCount} terkirim · ${b.failedCount} gagal · ${counts.pending + counts.sending} menunggu ·
         ${counts.skipped} di-skip · dari ${b.totalRecipients} total
+        · dari sesi <strong>${escapeHtml(b.sessionName || '—')}</strong>
         ${b.mode === 'queue' ? '' : ' · mode: <strong>parallel</strong>'}
       </p>
       <blockquote>${escapeHtml(b.messageText)}</blockquote>

@@ -8,7 +8,7 @@
  * - Terpisah     → mis. backend jalan di :3000:
  *     window.WA_API_BASE = 'http://localhost:3000';
  */
-window.WA_API_BASE = '';
+window.WA_API_BASE = 'http://localhost:3000';
 
 /** Normalisasi base URL (buang trailing slash). Dipakai semua modul frontend. */
 function apiBase() {
