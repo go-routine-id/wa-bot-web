@@ -76,6 +76,8 @@ const Broadcast = (() => {
   }
 
   async function submit() {
+    const btn = document.querySelector('#bc-form button[type="submit"]');
+    if (UI.isBusy(btn)) return; // anti double submit
     const source = document.querySelector('input[name="bc-source"]:checked').value;
     const recipients = document.getElementById('bc-recipients').value.trim();
     const ratePerMinute = Number(document.getElementById('bc-rate').value);
@@ -91,6 +93,7 @@ const Broadcast = (() => {
       return;
     }
 
+    UI.btnBusy(btn, true, 'Mengirim…');
     try {
       const body = { mode, ratePerMinute, sessionId, recipients };
 
@@ -122,6 +125,8 @@ const Broadcast = (() => {
       Router.navigate('history');
     } catch (err) {
       toast(err.message, 'error');
+    } finally {
+      UI.btnBusy(btn, false);
     }
   }
 

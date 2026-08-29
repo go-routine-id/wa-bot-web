@@ -58,7 +58,7 @@ const History = (() => {
       ensurePolling(list);
     } catch (err) {
       document.getElementById('hist-list').innerHTML =
-        `<p class="conn-error">${escapeHtml(err.message)}</p>`;
+        UI.errorState(err.message, 'History.load()');
       stopPolling();
     }
   }
@@ -89,7 +89,12 @@ const History = (() => {
     document.getElementById('hist-detail').classList.add('hidden');
     const el = document.getElementById('hist-list');
     if (list.length === 0) {
-      el.innerHTML = '<p class="muted">Belum ada broadcast.</p>';
+      el.innerHTML = UI.emptyState({
+        icon: '📭',
+        title: 'Belum ada broadcast',
+        body: 'Broadcast yang kamu kirim akan tampil di sini beserta status tiap penerimanya.',
+        cta: { label: '📣 Buat broadcast pertama', href: '/create' },
+      });
       return;
     }
     const rows = list
@@ -106,10 +111,10 @@ const History = (() => {
         <td>
           <button class="btn small" onclick="History.openDetail(${b.id})">Detail</button>
           ${b.retryableFailedCount > 0 && ['completed', 'failed'].includes(b.status)
-            ? `<button class="btn small" onclick="History.retryFailed(${b.id}, ${b.retryableFailedCount})">Retry gagal (${b.retryableFailedCount})</button>`
+            ? `<button class="btn small" onclick="History.retryFailed(${b.id}, ${b.retryableFailedCount}, this)">Retry gagal (${b.retryableFailedCount})</button>`
             : ''}
           ${['pending', 'running'].includes(b.status)
-            ? `<button class="btn small danger" onclick="History.cancel(${b.id})">Cancel</button>`
+            ? `<button class="btn small danger" onclick="History.cancel(${b.id}, this)">Cancel</button>`
             : ''}
         </td>
       </tr>`
@@ -175,7 +180,7 @@ const History = (() => {
         <button class="btn small" onclick="History.backToList()">← Kembali ke list</button>
         <h3>Broadcast #${b.id} <span class="badge badge-${b.status}">${b.status}</span></h3>
         ${canRetry
-          ? `<button class="btn small" onclick="History.retryFailed(${b.id}, ${b.retryableFailedCount})">Kirim ulang yang gagal (${b.retryableFailedCount})</button>`
+          ? `<button class="btn small" onclick="History.retryFailed(${b.id}, ${b.retryableFailedCount}, this)">Kirim ulang yang gagal (${b.retryableFailedCount})</button>`
           : ''}
       </div>
       <div class="progress"><div class="progress-bar" style="width:${pct}%"></div></div>
@@ -193,7 +198,8 @@ const History = (() => {
       </table>`;
   }
 
-  async function cancel(id) {
+  async function cancel(id, btn) {
+    if (UI.isBusy(btn)) return;
     const ok = await Modal.confirm({
       title: `Batalkan broadcast #${id}?`,
       body: 'Sisa recipient akan di-skip.',
@@ -201,6 +207,7 @@ const History = (() => {
       danger: true,
     });
     if (!ok) return;
+    UI.btnBusy(btn, true, 'Membatalkan…');
     try {
       await API.post(`/api/broadcasts/${id}/cancel`);
       toast('Broadcast dibatalkan', 'ok');
@@ -208,17 +215,21 @@ const History = (() => {
       else await load();
     } catch (err) {
       toast(err.message, 'error');
+    } finally {
+      UI.btnBusy(btn, false);
     }
   }
 
   /** Buat broadcast baru dari recipient yang gagal pada broadcast #id (nomor terkirim tidak di-resend). */
-  async function retryFailed(id, count) {
+  async function retryFailed(id, count, btn) {
+    if (UI.isBusy(btn)) return;
     const ok = await Modal.confirm({
       title: `Kirim ulang ${count} pesan gagal?`,
       body: `Broadcast baru akan dibuat dari broadcast #${id}; nomor yang sudah terkirim tidak dikirim ulang.`,
       okText: 'Kirim ulang',
     });
     if (!ok) return;
+    UI.btnBusy(btn, true, 'Mengirim…');
     try {
       const created = await API.post(`/api/broadcasts/${id}/retry`);
       toast(`Broadcast retry #${created.id} dibuat (${created.totalRecipients} penerima)`, 'ok');
@@ -226,6 +237,8 @@ const History = (() => {
       else await load();
     } catch (err) {
       toast(err.message, 'error');
+    } finally {
+      UI.btnBusy(btn, false);
     }
   }
 

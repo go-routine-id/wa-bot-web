@@ -18,7 +18,7 @@ const Connection = (() => {
       render();
     } catch (err) {
       document.getElementById('conn-content').innerHTML =
-        `<div class="conn-box"><p class="conn-error">${escapeHtml(err.message)}</p></div>`;
+        UI.errorState(err.message, 'Connection.refresh()');
     }
   }
 
@@ -59,8 +59,10 @@ const Connection = (() => {
 
     if (sessionsCache.length === 0) {
       el.innerHTML = `
-        <div class="conn-box">
-          <p class="muted">Belum ada sesi. Ketik nama di atas lalu klik <strong>Tambah Sesi</strong> untuk mulai.</p>
+        <div class="state-box">
+          <div class="state-icon">📱</div>
+          <p class="state-title">Belum ada sesi WhatsApp</p>
+          <p class="muted">Satu sesi = satu nomor WhatsApp ter-pair. Ketik nama di atas lalu klik <strong>Tambah Sesi</strong> untuk mulai.</p>
         </div>`;
       return;
     }
@@ -88,9 +90,9 @@ const Connection = (() => {
           <div class="session-head"><strong><span class="avatar">${name.charAt(0).toUpperCase()}</span>${name}</strong> ${badge}</div>
           <p class="muted">Terhubung sebagai <strong>${uname}</strong> (${unumber})</p>
           ${actions([
-            `<button class="btn small" onclick="Connection.rename('${s.id}')">Rename</button>`,
-            `<button class="btn small danger" onclick="Connection.logout('${s.id}')">Logout</button>`,
-            `<button class="btn small danger" onclick="Connection.remove('${s.id}')">Hapus</button>`,
+            `<button class="btn small" onclick="Connection.rename('${s.id}', this)">Rename</button>`,
+            `<button class="btn small danger" onclick="Connection.logout('${s.id}', this)">Logout</button>`,
+            `<button class="btn small danger" onclick="Connection.remove('${s.id}', this)">Hapus</button>`,
           ])}
         </div>`;
     }
@@ -105,8 +107,8 @@ const Connection = (() => {
           <img class="qr" src="${s.qrDataUrl}" alt="QR Code">
           <p class="muted">QR berlaku <strong id="qr-countdown-${s.id}" data-qr-countdown="${s.id}">${remain}</strong> detik lagi</p>
           ${actions([
-            `<button class="btn small" onclick="Connection.rescan('${s.id}')">Request QR baru</button>`,
-            `<button class="btn small danger" onclick="Connection.remove('${s.id}')">Hapus</button>`,
+            `<button class="btn small" onclick="Connection.rescan('${s.id}', this)">Request QR baru</button>`,
+            `<button class="btn small danger" onclick="Connection.remove('${s.id}', this)">Hapus</button>`,
           ])}
         </div>`;
     }
@@ -117,8 +119,8 @@ const Connection = (() => {
           <div class="session-head"><strong><span class="avatar">${name.charAt(0).toUpperCase()}</span>${name}</strong> ${badge}</div>
           <p class="conn-error">⚠️ ${escapeHtml(s.lastError || 'QR kedaluwarsa')}</p>
           ${actions([
-            `<button class="btn small" onclick="Connection.rescan('${s.id}')">Request QR baru</button>`,
-            `<button class="btn small danger" onclick="Connection.remove('${s.id}')">Hapus</button>`,
+            `<button class="btn small" onclick="Connection.rescan('${s.id}', this)">Request QR baru</button>`,
+            `<button class="btn small danger" onclick="Connection.remove('${s.id}', this)">Hapus</button>`,
           ])}
         </div>`;
     }
@@ -129,8 +131,8 @@ const Connection = (() => {
           <div class="session-head"><strong><span class="avatar">${name.charAt(0).toUpperCase()}</span>${name}</strong> ${badge}</div>
           <p class="conn-error">⚠️ Autentikasi gagal: ${escapeHtml(s.lastError || '')}</p>
           ${actions([
-            `<button class="btn small" onclick="Connection.rescan('${s.id}')">Scan ulang QR</button>`,
-            `<button class="btn small danger" onclick="Connection.remove('${s.id}')">Hapus</button>`,
+            `<button class="btn small" onclick="Connection.rescan('${s.id}', this)">Scan ulang QR</button>`,
+            `<button class="btn small danger" onclick="Connection.remove('${s.id}', this)">Hapus</button>`,
           ])}
         </div>`;
     }
@@ -141,8 +143,8 @@ const Connection = (() => {
           <div class="session-head"><strong><span class="avatar">${name.charAt(0).toUpperCase()}</span>${name}</strong> ${badge}</div>
           <p class="conn-error">⚠️ WhatsApp terputus${s.lastError ? ': ' + escapeHtml(s.lastError) : ''}</p>
           ${actions([
-            `<button class="btn small" onclick="Connection.rescan('${s.id}')">Hubungkan ulang</button>`,
-            `<button class="btn small danger" onclick="Connection.remove('${s.id}')">Hapus</button>`,
+            `<button class="btn small" onclick="Connection.rescan('${s.id}', this)">Hubungkan ulang</button>`,
+            `<button class="btn small danger" onclick="Connection.remove('${s.id}', this)">Hapus</button>`,
           ])}
         </div>`;
     }
@@ -153,20 +155,22 @@ const Connection = (() => {
         <div class="session-head"><strong><span class="avatar">${name.charAt(0).toUpperCase()}</span>${name}</strong> ${badge}</div>
         <p class="muted">${s.hasCreds ? 'Menghubungkan ke WhatsApp…' : 'Belum ter-pair — scan QR untuk mengaktifkan sesi.'}</p>
         ${actions([
-          `<button class="btn small" onclick="Connection.rescan('${s.id}')">${s.hasCreds ? 'Hubungkan' : 'Mulai / Scan QR'}</button>`,
-          `<button class="btn small" onclick="Connection.rename('${s.id}')">Rename</button>`,
-          `<button class="btn small danger" onclick="Connection.remove('${s.id}')">Hapus</button>`,
+          `<button class="btn small" onclick="Connection.rescan('${s.id}', this)">${s.hasCreds ? 'Hubungkan' : 'Mulai / Scan QR'}</button>`,
+          `<button class="btn small" onclick="Connection.rename('${s.id}', this)">Rename</button>`,
+          `<button class="btn small danger" onclick="Connection.remove('${s.id}', this)">Hapus</button>`,
         ])}
       </div>`;
   }
 
-  async function add() {
+  async function add(btn) {
+    if (UI.isBusy(btn)) return;
     const input = document.getElementById('conn-new-name');
     const name = (input?.value || '').trim();
     if (!name) {
       toast('Nama sesi wajib diisi', 'error');
       return;
     }
+    UI.btnBusy(btn, true, 'Menambah…');
     try {
       await API.post('/api/sessions', { name });
       toast('Sesi ditambahkan', 'ok');
@@ -174,10 +178,13 @@ const Connection = (() => {
       await refresh();
     } catch (err) {
       toast(err.message, 'error');
+    } finally {
+      UI.btnBusy(btn, false);
     }
   }
 
-  async function rename(id) {
+  async function rename(id, btn) {
+    if (UI.isBusy(btn)) return;
     const cur = sessionsCache.find((s) => s.id === id);
     const name = await Modal.prompt({
       title: 'Rename sesi',
@@ -185,16 +192,20 @@ const Connection = (() => {
       value: cur?.name || '',
     });
     if (!name) return;
+    UI.btnBusy(btn, true, 'Menyimpan…');
     try {
       await API.patch(`/api/sessions/${id}`, { name });
       toast('Sesi di-rename', 'ok');
       await refresh();
     } catch (err) {
       toast(err.message, 'error');
+    } finally {
+      UI.btnBusy(btn, false);
     }
   }
 
-  async function remove(id) {
+  async function remove(id, btn) {
+    if (UI.isBusy(btn)) return;
     const ok = await Modal.confirm({
       title: `Hapus sesi "${id}"?`,
       body: 'Kredensial akan dihapus (perlu scan QR lagi untuk dipakai). Broadcast yang memakainya akan dibatalkan.',
@@ -202,26 +213,34 @@ const Connection = (() => {
       danger: true,
     });
     if (!ok) return;
+    UI.btnBusy(btn, true, 'Menghapus…');
     try {
       await API.del(`/api/sessions/${id}`);
       toast('Sesi dihapus', 'ok');
       await refresh();
     } catch (err) {
       toast(err.message, 'error');
+    } finally {
+      UI.btnBusy(btn, false);
     }
   }
 
-  async function rescan(id) {
+  async function rescan(id, btn) {
+    if (UI.isBusy(btn)) return;
+    UI.btnBusy(btn, true, 'Memproses…');
     try {
       await API.post(`/api/sessions/${id}/rescan`);
       toast('Memulai ulang sesi…', 'ok');
       await refresh();
     } catch (err) {
       toast(err.message, 'error');
+    } finally {
+      UI.btnBusy(btn, false);
     }
   }
 
-  async function logout(id) {
+  async function logout(id, btn) {
+    if (UI.isBusy(btn)) return;
     const ok = await Modal.confirm({
       title: 'Logout sesi ini dari WhatsApp?',
       body: 'Kamu harus scan QR lagi untuk masuk.',
@@ -229,12 +248,15 @@ const Connection = (() => {
       danger: true,
     });
     if (!ok) return;
+    UI.btnBusy(btn, true, 'Logout…');
     try {
       await API.post(`/api/sessions/${id}/logout`);
       toast('Logout berhasil', 'ok');
       await refresh();
     } catch (err) {
       toast(err.message, 'error');
+    } finally {
+      UI.btnBusy(btn, false);
     }
   }
 

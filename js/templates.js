@@ -11,14 +11,18 @@ const Templates = (() => {
       Broadcast.loadTemplates(); // jaga-jaga select di tab create tetap fresh
     } catch (err) {
       document.getElementById('tpl-list').innerHTML =
-        `<p class="conn-error">${escapeHtml(err.message)}</p>`;
+        UI.errorState(err.message, 'Templates.load()');
     }
   }
 
   function renderList(templates) {
     const el = document.getElementById('tpl-list');
     if (templates.length === 0) {
-      el.innerHTML = '<p class="muted">Belum ada template.</p>';
+      el.innerHTML = UI.emptyState({
+        icon: '📝',
+        title: 'Belum ada template',
+        body: 'Template mempermudah broadcast berulang — isi form di atas untuk membuat yang pertama.',
+      });
       return;
     }
     const rows = templates
@@ -31,7 +35,7 @@ const Templates = (() => {
         <td>${t.updatedAt}</td>
         <td>
           <button class="btn small" onclick="Templates.edit(${t.id})">Edit</button>
-          <button class="btn small danger" onclick="Templates.remove(${t.id})">Hapus</button>
+          <button class="btn small danger" onclick="Templates.remove(${t.id}, this)">Hapus</button>
         </td>
       </tr>`
       )
@@ -76,6 +80,8 @@ const Templates = (() => {
   }
 
   async function save() {
+    const btn = document.querySelector('#tpl-form button[type="submit"]');
+    if (UI.isBusy(btn)) return;
     const id = Number(document.getElementById('tpl-id').value) || null;
     const name = document.getElementById('tpl-name').value.trim();
     const textContent = document.getElementById('tpl-text').value.trim();
@@ -86,6 +92,7 @@ const Templates = (() => {
       return;
     }
 
+    UI.btnBusy(btn, true, 'Menyimpan…');
     try {
       let mediaPath = currentMediaPath;
       if (fileInput.files && fileInput.files[0]) {
@@ -111,22 +118,28 @@ const Templates = (() => {
       await load();
     } catch (err) {
       toast(err.message, 'error');
+    } finally {
+      UI.btnBusy(btn, false);
     }
   }
 
-  async function remove(id) {
+  async function remove(id, btn) {
+    if (UI.isBusy(btn)) return;
     const ok = await Modal.confirm({
       title: `Hapus template #${id}?`,
       okText: 'Hapus',
       danger: true,
     });
     if (!ok) return;
+    UI.btnBusy(btn, true, 'Menghapus…');
     try {
       await API.del(`/api/templates/${id}`);
       toast('Template dihapus', 'ok');
       await load();
     } catch (err) {
       toast(err.message, 'error');
+    } finally {
+      UI.btnBusy(btn, false);
     }
   }
 
