@@ -194,7 +194,13 @@ const History = (() => {
   }
 
   async function cancel(id) {
-    if (!confirm(`Batalkan broadcast #${id}? Sisa recipient akan di-skip.`)) return;
+    const ok = await Modal.confirm({
+      title: `Batalkan broadcast #${id}?`,
+      body: 'Sisa recipient akan di-skip.',
+      okText: 'Batalkan broadcast',
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await API.post(`/api/broadcasts/${id}/cancel`);
       toast('Broadcast dibatalkan', 'ok');
@@ -207,7 +213,12 @@ const History = (() => {
 
   /** Buat broadcast baru dari recipient yang gagal pada broadcast #id (nomor terkirim tidak di-resend). */
   async function retryFailed(id, count) {
-    if (!confirm(`Kirim ulang ${count} pesan yang gagal dari broadcast #${id}? Broadcast baru akan dibuat; nomor yang sudah terkirim tidak dikirim ulang.`)) return;
+    const ok = await Modal.confirm({
+      title: `Kirim ulang ${count} pesan gagal?`,
+      body: `Broadcast baru akan dibuat dari broadcast #${id}; nomor yang sudah terkirim tidak dikirim ulang.`,
+      okText: 'Kirim ulang',
+    });
+    if (!ok) return;
     try {
       const created = await API.post(`/api/broadcasts/${id}/retry`);
       toast(`Broadcast retry #${created.id} dibuat (${created.totalRecipients} penerima)`, 'ok');

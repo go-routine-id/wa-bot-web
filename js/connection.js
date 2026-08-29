@@ -85,7 +85,7 @@ const Connection = (() => {
       const unumber = s.userInfo?.number ? escapeHtml(s.userInfo.number) : '?';
       return `
         <div class="conn-box session-card">
-          <div class="session-head"><strong>${name}</strong> ${badge}</div>
+          <div class="session-head"><strong><span class="avatar">${name.charAt(0).toUpperCase()}</span>${name}</strong> ${badge}</div>
           <p class="muted">Terhubung sebagai <strong>${uname}</strong> (${unumber})</p>
           ${actions([
             `<button class="btn small" onclick="Connection.rename('${s.id}')">Rename</button>`,
@@ -99,7 +99,7 @@ const Connection = (() => {
       const remain = Math.max(0, Math.round(((s.qrExpiresAt || 0) - Date.now()) / 1000));
       return `
         <div class="conn-box session-card">
-          <div class="session-head"><strong>${name}</strong> ${badge}</div>
+          <div class="session-head"><strong><span class="avatar">${name.charAt(0).toUpperCase()}</span>${name}</strong> ${badge}</div>
           <h4>Scan QR ini dengan WhatsApp di HP kamu</h4>
           <p class="muted">WhatsApp → Setelan → Perangkat tertaut → Tautkan perangkat</p>
           <img class="qr" src="${s.qrDataUrl}" alt="QR Code">
@@ -114,7 +114,7 @@ const Connection = (() => {
     if (s.status === 'qr_expired') {
       return `
         <div class="conn-box session-card">
-          <div class="session-head"><strong>${name}</strong> ${badge}</div>
+          <div class="session-head"><strong><span class="avatar">${name.charAt(0).toUpperCase()}</span>${name}</strong> ${badge}</div>
           <p class="conn-error">⚠️ ${escapeHtml(s.lastError || 'QR kedaluwarsa')}</p>
           ${actions([
             `<button class="btn small" onclick="Connection.rescan('${s.id}')">Request QR baru</button>`,
@@ -126,7 +126,7 @@ const Connection = (() => {
     if (s.status === 'auth_failure') {
       return `
         <div class="conn-box session-card">
-          <div class="session-head"><strong>${name}</strong> ${badge}</div>
+          <div class="session-head"><strong><span class="avatar">${name.charAt(0).toUpperCase()}</span>${name}</strong> ${badge}</div>
           <p class="conn-error">⚠️ Autentikasi gagal: ${escapeHtml(s.lastError || '')}</p>
           ${actions([
             `<button class="btn small" onclick="Connection.rescan('${s.id}')">Scan ulang QR</button>`,
@@ -138,7 +138,7 @@ const Connection = (() => {
     if (s.status === 'disconnected') {
       return `
         <div class="conn-box session-card">
-          <div class="session-head"><strong>${name}</strong> ${badge}</div>
+          <div class="session-head"><strong><span class="avatar">${name.charAt(0).toUpperCase()}</span>${name}</strong> ${badge}</div>
           <p class="conn-error">⚠️ WhatsApp terputus${s.lastError ? ': ' + escapeHtml(s.lastError) : ''}</p>
           ${actions([
             `<button class="btn small" onclick="Connection.rescan('${s.id}')">Hubungkan ulang</button>`,
@@ -150,7 +150,7 @@ const Connection = (() => {
     // uninitialized / connecting
     return `
       <div class="conn-box session-card">
-        <div class="session-head"><strong>${name}</strong> ${badge}</div>
+        <div class="session-head"><strong><span class="avatar">${name.charAt(0).toUpperCase()}</span>${name}</strong> ${badge}</div>
         <p class="muted">${s.hasCreds ? 'Menghubungkan ke WhatsApp…' : 'Belum ter-pair — scan QR untuk mengaktifkan sesi.'}</p>
         ${actions([
           `<button class="btn small" onclick="Connection.rescan('${s.id}')">${s.hasCreds ? 'Hubungkan' : 'Mulai / Scan QR'}</button>`,
@@ -179,7 +179,11 @@ const Connection = (() => {
 
   async function rename(id) {
     const cur = sessionsCache.find((s) => s.id === id);
-    const name = prompt('Nama baru sesi:', cur?.name || '');
+    const name = await Modal.prompt({
+      title: 'Rename sesi',
+      label: 'Nama baru sesi',
+      value: cur?.name || '',
+    });
     if (!name) return;
     try {
       await API.patch(`/api/sessions/${id}`, { name });
@@ -191,12 +195,13 @@ const Connection = (() => {
   }
 
   async function remove(id) {
-    if (
-      !confirm(
-        `Hapus sesi "${id}"? Kredensial akan dihapus (perlu scan QR lagi untuk dipakai). Broadcast yang memakainya akan dibatalkan.`
-      )
-    )
-      return;
+    const ok = await Modal.confirm({
+      title: `Hapus sesi "${id}"?`,
+      body: 'Kredensial akan dihapus (perlu scan QR lagi untuk dipakai). Broadcast yang memakainya akan dibatalkan.',
+      okText: 'Hapus',
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await API.del(`/api/sessions/${id}`);
       toast('Sesi dihapus', 'ok');
@@ -217,7 +222,13 @@ const Connection = (() => {
   }
 
   async function logout(id) {
-    if (!confirm('Yakin logout sesi ini dari WhatsApp? Kamu harus scan QR lagi untuk masuk.')) return;
+    const ok = await Modal.confirm({
+      title: 'Logout sesi ini dari WhatsApp?',
+      body: 'Kamu harus scan QR lagi untuk masuk.',
+      okText: 'Logout',
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await API.post(`/api/sessions/${id}/logout`);
       toast('Logout berhasil', 'ok');

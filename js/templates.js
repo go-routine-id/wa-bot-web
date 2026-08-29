@@ -115,7 +115,12 @@ const Templates = (() => {
   }
 
   async function remove(id) {
-    if (!confirm(`Hapus template #${id}?`)) return;
+    const ok = await Modal.confirm({
+      title: `Hapus template #${id}?`,
+      okText: 'Hapus',
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await API.del(`/api/templates/${id}`);
       toast('Template dihapus', 'ok');

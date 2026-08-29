@@ -72,7 +72,7 @@ const Broadcast = (() => {
     el.innerHTML = t
       ? `<blockquote>${escapeHtml(t.textContent)}</blockquote>` +
         (t.mediaPath ? '<p>🖼️ Template ini menyertakan gambar.</p>' : '')
-      : '<p>—</p>';
+      : '';
   }
 
   async function submit() {
