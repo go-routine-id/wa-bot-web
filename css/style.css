@@ -662,3 +662,99 @@ blockquote {
 .state-box .muted { margin: 0 auto 18px; max-width: 420px; }
 .state-box.error { border-color: rgba(179, 57, 47, 0.4); }
 .state-box.error .state-title { color: var(--danger); }
+
+/* ---------- Segmented control (pengganti radio) ---------- */
+.seg {
+  display: inline-flex;
+  gap: 6px;
+  padding: 5px;
+  background: #edeade;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+.seg-opt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 9px 20px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--muted);
+  transition: background 0.18s, color 0.18s, box-shadow 0.18s, transform 0.12s;
+}
+.seg-opt:hover { color: var(--text); }
+.seg-opt:active { transform: scale(0.97); }
+.seg-opt input { position: absolute; opacity: 0; width: 0; height: 0; }
+.seg-ico { font-size: 15px; }
+.seg-opt:has(input:checked) {
+  background: linear-gradient(135deg, var(--primary), var(--primary-2));
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(12, 74, 62, 0.30), inset 0 0 0 1px rgba(233, 217, 166, 0.35);
+}
+.seg-opt:has(input:focus-visible) { box-shadow: 0 0 0 4px rgba(18, 131, 110, 0.18); }
+
+/* ---------- File dropzone ---------- */
+.file-native { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
+.file-drop {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  background: #fcfbf7;
+  padding: 26px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.18s, background 0.18s, box-shadow 0.18s;
+}
+.file-drop:hover, .file-drop.drag {
+  border-color: var(--gold);
+  background: #faf7ec;
+  box-shadow: 0 0 0 4px rgba(201, 162, 39, 0.10);
+}
+.file-drop.drag { transform: scale(1.01); }
+.fd-ico { font-size: 30px; margin-bottom: 8px; }
+.fd-title { font-weight: 700; font-size: 14px; margin: 0 0 2px; }
+.fd-sub { font-size: 12px; color: var(--muted); margin: 0; }
+.file-drop.has-file {
+  border-style: solid;
+  border-color: var(--primary-2);
+  background: #f4faf7;
+  text-align: left;
+  padding: 14px 16px;
+  cursor: default;
+}
+.fd-file { display: flex; align-items: center; gap: 14px; }
+.fd-thumb {
+  width: 52px;
+  height: 52px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+.fd-meta { flex: 1; min-width: 0; }
+.fd-name {
+  font-weight: 700;
+  font-size: 14px;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fd-size { font-size: 12px; color: var(--muted); margin: 2px 0 0; }
+.fd-remove {
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--muted);
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 13px;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.fd-remove:hover { color: var(--danger); border-color: var(--danger); background: #fdf3f2; }

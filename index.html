@@ -41,8 +41,10 @@
       <form id="bc-form" onsubmit="event.preventDefault(); Broadcast.submit();">
         <fieldset>
           <legend>Sumber pesan</legend>
-          <label class="radio"><input type="radio" name="bc-source" value="template" checked onchange="Broadcast.toggleSource()"> Pakai template</label>
-          <label class="radio"><input type="radio" name="bc-source" value="direct" onchange="Broadcast.toggleSource()"> Tulis langsung</label>
+          <div class="seg">
+            <label class="seg-opt"><input type="radio" name="bc-source" value="template" checked onchange="Broadcast.toggleSource()"><span class="seg-ico">📝</span>Pakai template</label>
+            <label class="seg-opt"><input type="radio" name="bc-source" value="direct" onchange="Broadcast.toggleSource()"><span class="seg-ico">✍️</span>Tulis langsung</label>
+          </div>
         </fieldset>
 
         <div id="bc-template-wrap">
