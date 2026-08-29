@@ -26,6 +26,10 @@ const Modal = (() => {
           <label class="modal-label"></label>
           <input type="text" class="modal-input">
         </div>
+        <div class="modal-select-wrap hidden">
+          <label class="modal-select-label"></label>
+          <select class="modal-select"></select>
+        </div>
         <div class="modal-actions">
           <button type="button" class="btn modal-cancel">Batal</button>
           <button type="button" class="btn primary modal-ok">OK</button>
@@ -52,23 +56,26 @@ const Modal = (() => {
     resolver = null;
     if (dlg.open) dlg.close();
     if (!ok) {
-      resolve(dlg.dataset.mode === 'prompt' ? null : false);
+      resolve(dlg.dataset.mode === 'confirm' ? false : null);
       return;
     }
     if (dlg.dataset.mode === 'prompt') {
       const val = dlg.querySelector('.modal-input').value.trim();
+      resolve(val || null);
+    } else if (dlg.dataset.mode === 'select') {
+      const val = dlg.querySelector('.modal-select').value;
       resolve(val || null);
     } else {
       resolve(true);
     }
   }
 
-  function open({ mode, title, body, label, value, placeholder, okText, danger }) {
+  function open({ mode, title, body, label, value, placeholder, options, okText, danger }) {
     if (!dlg) build();
-    if (resolver) resolver(dlg.dataset.mode === 'prompt' ? null : false); // dialog sebelumnya digantikan
+    if (resolver) resolver(dlg.dataset.mode === 'confirm' ? false : null); // dialog sebelumnya digantikan
     dlg.dataset.mode = mode;
     dlg.querySelector('.modal-title-text').textContent = title || '';
-    dlg.querySelector('.modal-icon').textContent = danger ? '⚠️' : mode === 'prompt' ? '✏️' : '💬';
+    dlg.querySelector('.modal-icon').textContent = danger ? '⚠️' : mode === 'prompt' ? '✏️' : mode === 'select' ? '📱' : '💬';
     const bodyEl = dlg.querySelector('.modal-body');
     bodyEl.textContent = body || '';
     bodyEl.classList.toggle('hidden', !body);
@@ -88,6 +95,21 @@ const Modal = (() => {
       };
     }
 
+    const selectWrap = dlg.querySelector('.modal-select-wrap');
+    selectWrap.classList.toggle('hidden', mode !== 'select');
+    if (mode === 'select') {
+      dlg.querySelector('.modal-select-label').textContent = label || 'Pilih:';
+      const sel = dlg.querySelector('.modal-select');
+      sel.innerHTML = (options || [])
+        .map((opt) => {
+          const optVal = typeof opt === 'string' ? opt : opt.value;
+          const optLabel = typeof opt === 'string' ? opt : opt.label;
+          const selected = optVal === value ? 'selected' : '';
+          return `<option value="${escapeHtml(optVal)}" ${selected}>${escapeHtml(optLabel)}</option>`;
+        })
+        .join('');
+    }
+
     const okBtn = dlg.querySelector('.modal-ok');
     okBtn.textContent = okText || 'OK';
     okBtn.classList.toggle('danger', !!danger);
@@ -99,6 +121,9 @@ const Modal = (() => {
       const input = dlg.querySelector('.modal-input');
       input.focus();
       input.select();
+    } else if (mode === 'select') {
+      const sel = dlg.querySelector('.modal-select');
+      sel.focus();
     } else {
       okBtn.focus();
     }
@@ -117,7 +142,12 @@ const Modal = (() => {
     return open({ mode: 'prompt', title, label, value, placeholder, okText });
   }
 
-  return { confirm, prompt };
+  /** Dialog pilihan dropdown. Resolve value yang dipilih / null bila batal. */
+  function select({ title, body, label, options = [], value = '', okText = 'Pilih' }) {
+    return open({ mode: 'select', title, body, label, options, value, okText });
+  }
+
+  return { confirm, prompt, select };
 })();
 
 window.Modal = Modal;

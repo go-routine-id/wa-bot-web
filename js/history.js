@@ -223,15 +223,53 @@ const History = (() => {
   /** Buat broadcast baru dari recipient yang gagal pada broadcast #id (nomor terkirim tidak di-resend). */
   async function retryFailed(id, count, btn) {
     if (UI.isBusy(btn)) return;
-    const ok = await Modal.confirm({
-      title: `Kirim ulang ${count} pesan gagal?`,
-      body: `Broadcast baru akan dibuat dari broadcast #${id}; nomor yang sudah terkirim tidak dikirim ulang.`,
-      okText: 'Kirim ulang',
-    });
-    if (!ok) return;
+
+    let targetSessionId = null;
+
+    try {
+      // Ambil daftar sesi aktif agar user bisa memilih sesi pengirim
+      const sessions = await API.get('/api/sessions');
+      const connectedSessions = (sessions || []).filter((s) => s.connected || s.status === 'connected');
+
+      if (connectedSessions.length > 0) {
+        const options = connectedSessions.map((s) => ({
+          value: s.id,
+          label: `${s.name || s.id} (${s.userInfo?.number || s.userInfo?.name || 'Terhubung'})`,
+        }));
+
+        const selected = await Modal.select({
+          title: `Kirim ulang ${count} pesan gagal?`,
+          body: `Broadcast baru akan dibuat dari broadcast #${id}. Pilih sesi WhatsApp pengirim:`,
+          label: 'Sesi Pengirim:',
+          options,
+          value: options[0].value,
+          okText: 'Kirim ulang',
+        });
+
+        if (!selected) return; // User membatalkan dialog
+        targetSessionId = selected;
+      } else {
+        const ok = await Modal.confirm({
+          title: `Kirim ulang ${count} pesan gagal?`,
+          body: `Broadcast baru akan dibuat dari broadcast #${id}; nomor yang sudah terkirim tidak dikirim ulang.`,
+          okText: 'Kirim ulang',
+        });
+        if (!ok) return;
+      }
+    } catch (err) {
+      console.warn('Gagal memuat sesi untuk retry:', err);
+      const ok = await Modal.confirm({
+        title: `Kirim ulang ${count} pesan gagal?`,
+        body: `Broadcast baru akan dibuat dari broadcast #${id}; nomor yang sudah terkirim tidak dikirim ulang.`,
+        okText: 'Kirim ulang',
+      });
+      if (!ok) return;
+    }
+
     UI.btnBusy(btn, true, 'Mengirim…');
     try {
-      const created = await API.post(`/api/broadcasts/${id}/retry`);
+      const payload = targetSessionId ? { sessionId: targetSessionId } : {};
+      const created = await API.post(`/api/broadcasts/${id}/retry`, payload);
       toast(`Broadcast retry #${created.id} dibuat (${created.totalRecipients} penerima)`, 'ok');
       if (currentDetailId() === id) await renderDetailPage(id);
       else await load();
