@@ -278,6 +278,25 @@ tr:last-child td { border-bottom: none; }
 .conn-connected { font-size: 18px; margin-bottom: 8px; }
 .conn-error { color: var(--danger); margin-bottom: 12px; font-weight: 500; }
 
+/* Kode pairing 8 digit — padan visual img.qr: besar, monospace, mudah disalin. */
+.conn-box .pairing-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-align: center;
+  margin: 14px auto;
+  padding: 16px 20px;
+  width: fit-content;
+  background: #fff;
+  border: 1px solid var(--gold-soft);
+  outline: 1px solid rgba(201, 162, 39, 0.35);
+  outline-offset: 4px;
+  border-radius: 16px;
+  box-shadow: var(--shadow-md);
+  user-select: all;
+}
+
 .session-add { display: flex; gap: 10px; margin-bottom: 18px; }
 .session-add input { flex: 1; max-width: 380px; }
 .session-list {

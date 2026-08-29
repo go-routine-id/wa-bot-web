@@ -29,19 +29,23 @@ const Connection = (() => {
     }
   }
 
-  // Satu interval memperbarui semua elemen data-qr-countdown; saat salah satu habis
-  // → satu refresh() (backend sudah qr_expired, render menampilkan tombol manual).
+  // Satu interval memperbarui semua elemen data-qr-countdown (QR & kode pairing);
+  // saat salah satu habis → satu refresh() (backend sudah qr_expired, render
+  // menampilkan tombol manual).
   function startCountdown() {
     if (countdown) return;
     countdown = setInterval(() => {
-      const qrSessions = sessionsCache.filter((s) => s.status === 'qr' && s.qrExpiresAt);
-      if (qrSessions.length === 0) {
+      const ticking = sessionsCache.filter(
+        (s) => (s.status === 'qr' && s.qrExpiresAt) || (s.status === 'pairing_code' && s.pairingCodeExpiresAt)
+      );
+      if (ticking.length === 0) {
         stopCountdown();
         return;
       }
       let anyExpired = false;
-      qrSessions.forEach((s) => {
-        const remain = Math.max(0, Math.round((s.qrExpiresAt - Date.now()) / 1000));
+      ticking.forEach((s) => {
+        const expiresAt = s.status === 'pairing_code' ? s.pairingCodeExpiresAt : s.qrExpiresAt;
+        const remain = Math.max(0, Math.round((expiresAt - Date.now()) / 1000));
         const num = document.getElementById(`qr-countdown-${s.id}`);
         if (num) num.textContent = remain;
         if (remain <= 0) anyExpired = true;
@@ -68,8 +72,10 @@ const Connection = (() => {
     }
 
     const cards = sessionsCache.map(renderCard).join('');
-    const hasQr = sessionsCache.some((s) => s.status === 'qr' && s.qrExpiresAt);
-    if (hasQr) startCountdown();
+    const hasCountdown = sessionsCache.some(
+      (s) => (s.status === 'qr' && s.qrExpiresAt) || (s.status === 'pairing_code' && s.pairingCodeExpiresAt)
+    );
+    if (hasCountdown) startCountdown();
 
     el.innerHTML = `<div class="session-list">${cards}</div>`;
   }
@@ -108,6 +114,26 @@ const Connection = (() => {
           <p class="muted">QR berlaku <strong id="qr-countdown-${s.id}" data-qr-countdown="${s.id}">${remain}</strong> detik lagi</p>
           ${actions([
             `<button class="btn small" onclick="Connection.rescan('${s.id}', this)">Request QR baru</button>`,
+            `<button class="btn small" onclick="Connection.pairingCode('${s.id}', this)">Kode pairing</button>`,
+            `<button class="btn small danger" onclick="Connection.remove('${s.id}', this)">Hapus</button>`,
+          ])}
+        </div>`;
+    }
+
+    if (s.hasPairingCode) {
+      const remain = Math.max(0, Math.round(((s.pairingCodeExpiresAt || 0) - Date.now()) / 1000));
+      const code = escapeHtml(s.pairingCode || '');
+      const pretty = code.length === 8 ? `${code.slice(0, 4)}-${code.slice(4)}` : code;
+      return `
+        <div class="conn-box session-card">
+          <div class="session-head"><strong><span class="avatar">${name.charAt(0).toUpperCase()}</span>${name}</strong> ${badge}</div>
+          <h4>Masukkan kode ini di WhatsApp HP kamu</h4>
+          <p class="muted">WhatsApp → Setelan → Perangkat tertaut → Tautkan perangkat → <strong>Tautkan dengan nomor telepon</strong></p>
+          <p class="pairing-code">${pretty}</p>
+          <p class="muted">Kode berlaku <strong id="qr-countdown-${s.id}" data-qr-countdown="${s.id}">${remain}</strong> detik lagi</p>
+          ${actions([
+            `<button class="btn small" onclick="Connection.pairingCode('${s.id}', this)">Minta kode baru</button>`,
+            `<button class="btn small" onclick="Connection.rescan('${s.id}', this)">Pakai QR</button>`,
             `<button class="btn small danger" onclick="Connection.remove('${s.id}', this)">Hapus</button>`,
           ])}
         </div>`;
@@ -120,6 +146,7 @@ const Connection = (() => {
           <p class="conn-error">⚠️ ${escapeHtml(s.lastError || 'QR kedaluwarsa')}</p>
           ${actions([
             `<button class="btn small" onclick="Connection.rescan('${s.id}', this)">Request QR baru</button>`,
+            `<button class="btn small" onclick="Connection.pairingCode('${s.id}', this)">Kode pairing</button>`,
             `<button class="btn small danger" onclick="Connection.remove('${s.id}', this)">Hapus</button>`,
           ])}
         </div>`;
@@ -150,15 +177,23 @@ const Connection = (() => {
     }
 
     // uninitialized / connecting
+    const addButtons = [
+      `<button class="btn small" onclick="Connection.rescan('${s.id}', this)">${s.hasCreds ? 'Hubungkan' : 'Mulai / Scan QR'}</button>`,
+    ];
+    // Kode pairing hanya untuk sesi tanpa pairing valid (backend menolak 409 bila
+    // hasCreds — pairing code menghapus linked device yang masih hidup).
+    if (!s.hasCreds) {
+      addButtons.push(`<button class="btn small" onclick="Connection.pairingCode('${s.id}', this)">Kode pairing</button>`);
+    }
+    addButtons.push(
+      `<button class="btn small" onclick="Connection.rename('${s.id}', this)">Rename</button>`,
+      `<button class="btn small danger" onclick="Connection.remove('${s.id}', this)">Hapus</button>`
+    );
     return `
       <div class="conn-box session-card">
         <div class="session-head"><strong><span class="avatar">${name.charAt(0).toUpperCase()}</span>${name}</strong> ${badge}</div>
         <p class="muted">${s.hasCreds ? 'Menghubungkan ke WhatsApp…' : 'Belum ter-pair — scan QR untuk mengaktifkan sesi.'}</p>
-        ${actions([
-          `<button class="btn small" onclick="Connection.rescan('${s.id}', this)">${s.hasCreds ? 'Hubungkan' : 'Mulai / Scan QR'}</button>`,
-          `<button class="btn small" onclick="Connection.rename('${s.id}', this)">Rename</button>`,
-          `<button class="btn small danger" onclick="Connection.remove('${s.id}', this)">Hapus</button>`,
-        ])}
+        ${actions(addButtons)}
       </div>`;
   }
 
@@ -239,6 +274,30 @@ const Connection = (() => {
     }
   }
 
+  /**
+   * Pairing via kode 8 digit (alternatif scan QR). Prompt nomor HP dulu —
+   * kode dibuat async di backend (muncul lewat polling berikutnya).
+   */
+  async function pairingCode(id, btn) {
+    if (UI.isBusy(btn)) return;
+    const phone = await Modal.prompt({
+      title: 'Pairing dengan kode 8 digit',
+      label: 'Nomor HP yang akan dipasangkan — format internasional tanpa "+" atau 0 di depan (mis. 6281234567890)',
+      value: '',
+    });
+    if (!phone) return;
+    UI.btnBusy(btn, true, 'Meminta kode…');
+    try {
+      await API.post(`/api/sessions/${id}/pairing-code`, { phone });
+      toast('Kode pairing diminta — muncul dalam beberapa detik…', 'ok');
+      await refresh();
+    } catch (err) {
+      toast(err.message, 'error');
+    } finally {
+      UI.btnBusy(btn, false);
+    }
+  }
+
   async function logout(id, btn) {
     if (UI.isBusy(btn)) return;
     const ok = await Modal.confirm({
@@ -260,7 +319,7 @@ const Connection = (() => {
     }
   }
 
-  return { start, refresh, add, rename, remove, rescan, logout };
+  return { start, refresh, add, rename, remove, rescan, pairingCode, logout };
 })();
 
 window.Connection = Connection;
