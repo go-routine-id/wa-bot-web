@@ -75,12 +75,45 @@ const Broadcast = (() => {
       : '';
   }
 
+  let currentSpeedType = 'delay'; // 'delay' | 'rate'
+
+  function setSpeedType(type) {
+    currentSpeedType = type;
+    document.getElementById('pill-delay').classList.toggle('active', type === 'delay');
+    document.getElementById('pill-rate').classList.toggle('active', type === 'rate');
+    document.getElementById('bc-speed-delay-wrap').classList.toggle('hidden', type !== 'delay');
+    document.getElementById('bc-speed-rate-wrap').classList.toggle('hidden', type !== 'rate');
+    document.getElementById('bc-speed-main-label').textContent =
+      type === 'delay' ? 'Jeda antar pesan' : 'Kecepatan pengiriman';
+    updateSpeedPreview();
+  }
+
+  function updateSpeedPreview() {
+    const preview = document.getElementById('bc-speed-preview');
+    if (currentSpeedType === 'delay') {
+      const sec = parseFloat(document.getElementById('bc-delay').value) || 0;
+      if (sec <= 0) {
+        preview.textContent = 'Masukkan angka jeda positif';
+      } else {
+        const estRpm = Math.round(60 / sec);
+        preview.textContent = `Jeda ${sec} detik antar pesan (~${estRpm} pesan/menit)`;
+      }
+    } else {
+      const rpm = parseInt(document.getElementById('bc-rate').value, 10) || 0;
+      if (rpm <= 0) {
+        preview.textContent = 'Masukkan rate pesan per menit';
+      } else {
+        const estSec = (60 / rpm).toFixed(1).replace(/\.0$/, '');
+        preview.textContent = `${rpm} pesan/menit (~1 pesan tiap ${estSec} detik)`;
+      }
+    }
+  }
+
   async function submit() {
     const btn = document.querySelector('#bc-form button[type="submit"]');
     if (UI.isBusy(btn)) return; // anti double submit
     const source = document.querySelector('input[name="bc-source"]:checked').value;
     const recipients = document.getElementById('bc-recipients').value.trim();
-    const ratePerMinute = Number(document.getElementById('bc-rate').value);
     const mode = document.getElementById('bc-mode').value;
     const sessionId = document.getElementById('bc-session').value;
 
@@ -95,7 +128,22 @@ const Broadcast = (() => {
 
     UI.btnBusy(btn, true, 'Mengirim…');
     try {
-      const body = { mode, ratePerMinute, sessionId, recipients };
+      const body = { mode, sessionId, recipients };
+      if (currentSpeedType === 'delay') {
+        const delaySeconds = parseFloat(document.getElementById('bc-delay').value);
+        if (!delaySeconds || delaySeconds <= 0) {
+          toast('Jeda detik per pesan harus berupa angka positif', 'error');
+          return;
+        }
+        body.delaySeconds = delaySeconds;
+      } else {
+        const ratePerMinute = parseInt(document.getElementById('bc-rate').value, 10);
+        if (!ratePerMinute || ratePerMinute <= 0) {
+          toast('Rate pesan per menit harus berupa angka positif', 'error');
+          return;
+        }
+        body.ratePerMinute = ratePerMinute;
+      }
 
       if (source === 'template') {
         body.templateId = Number(document.getElementById('bc-template').value);
@@ -130,7 +178,7 @@ const Broadcast = (() => {
     }
   }
 
-  return { toggleSource, loadTemplates, loadSessions, previewTemplate, submit };
+  return { toggleSource, setSpeedType, updateSpeedPreview, loadTemplates, loadSessions, previewTemplate, submit };
 })();
 
 window.Broadcast = Broadcast;
