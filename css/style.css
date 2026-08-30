@@ -322,6 +322,7 @@ textarea { resize: vertical; }
 .badge-disconnected  { background: #fbe3e1; color: #a02c23; }
 .badge-auth_failure  { background: #fbe3e1; color: #a02c23; }
 .badge-qr_expired    { background: #fdf3d7; color: #92610e; }
+.badge-pairing_code  { background: #e9e3fb; color: #5b21b6; }
 
 /* ---------- Table ---------- */
 table {
