@@ -32,7 +32,7 @@ const Templates = (() => {
         <td>${escapeHtml(t.name)}</td>
         <td>${escapeHtml((t.textContent || '').slice(0, 80))}</td>
         <td>${t.mediaPath ? '🖼️ ada' : '—'}</td>
-        <td>${t.updatedAt}</td>
+        <td>${escapeHtml(fmtTime(t.updatedAt))}</td>
         <td>
           <button class="btn small" onclick="Templates.edit(${t.id})">Edit</button>
           <button class="btn small danger" onclick="Templates.remove(${t.id}, this)">Hapus</button>
