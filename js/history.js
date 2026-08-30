@@ -154,11 +154,20 @@ const History = (() => {
 
   function renderDetail(b, recipients) {
     const el = document.getElementById('hist-detail');
+    // Simpan isi & fokus input "tambah nomor" sebelum innerHTML ditimpa: polling
+    // merender ulang tiap 2 detik selama broadcast 'pending' (status yang editable).
+    const prevAddInput = document.getElementById('rcp-add-input');
+    const prevAddValue = prevAddInput ? prevAddInput.value : '';
+    const prevAddFocused = !!prevAddInput && prevAddInput === document.activeElement;
     const counts = { pending: 0, sending: 0, sent: 0, failed: 0, skipped: 0 };
     recipients.forEach((r) => {
       if (counts[r.status] !== undefined) counts[r.status] += 1;
     });
     const pct = b.totalRecipients ? Math.round((b.sentCount / b.totalRecipients) * 100) : 0;
+
+    // Daftar nomor hanya bisa diubah selama broadcast belum diproses; backend
+    // menolak status lain (runner memakai snapshot recipient begitu mulai jalan).
+    const editable = b.status === 'pending';
 
     const rows = recipients
       .map(
@@ -168,6 +177,9 @@ const History = (() => {
         <td><span class="badge badge-${r.status}">${r.status}</span></td>
         <td>${escapeHtml(r.error || '')}</td>
         <td>${escapeHtml(r.sentAt || '')}</td>
+        ${editable
+          ? `<td><button class="btn small danger" onclick="History.removeRecipient(${b.id}, ${r.id}, '${escapeHtml(r.recipientNumber)}', '${r.status}', this)">Hapus</button></td>`
+          : ''}
       </tr>`
       )
       .join('');
@@ -192,10 +204,29 @@ const History = (() => {
       </p>
       <blockquote>${escapeHtml(b.messageText)}</blockquote>
       ${b.mediaPath ? `<img class="detail-img" src="${apiBase()}/uploads/${escapeHtml(b.mediaPath)}">` : ''}
+      ${editable
+        ? `<div class="recipient-add">
+             <input type="text" id="rcp-add-input" placeholder="Tambah nomor tujuan (pisah koma): 6281234567890, 628…">
+             <button class="btn small primary" onclick="History.addRecipients(${b.id}, this)">Tambah nomor</button>
+           </div>
+           <p class="muted hint-edit">Daftar nomor masih bisa diubah karena broadcast belum diproses.</p>`
+        : ''}
       <table>
-        <thead><tr><th>Nomor</th><th>Status</th><th>Error</th><th>Dikirim</th></tr></thead>
+        <thead><tr><th>Nomor</th><th>Status</th><th>Error</th><th>Dikirim</th>${editable ? '<th>Aksi</th>' : ''}</tr></thead>
         <tbody>${rows}</tbody>
       </table>`;
+
+    // Kembalikan isi & fokus input supaya ketikan user tidak hilang saat polling.
+    if (editable) {
+      const input = document.getElementById('rcp-add-input');
+      if (input) {
+        input.value = prevAddValue;
+        if (prevAddFocused) {
+          input.focus();
+          input.setSelectionRange(input.value.length, input.value.length);
+        }
+      }
+    }
   }
 
   async function cancel(id, btn) {
@@ -280,7 +311,69 @@ const History = (() => {
     }
   }
 
-  return { load, openDetail, renderDetailPage, backToList, cancel, retryFailed };
+  /** Tambah nomor tujuan ke broadcast yang belum diproses. */
+  async function addRecipients(id, btn) {
+    if (UI.isBusy(btn)) return;
+    const input = document.getElementById('rcp-add-input');
+    const raw = (input?.value || '').trim();
+    if (!raw) {
+      toast('Isi dulu nomor yang ingin ditambahkan', 'error');
+      return;
+    }
+    UI.btnBusy(btn, true, 'Menambah…');
+    try {
+      const res = await API.post(`/api/broadcasts/${id}/recipients`, { recipients: raw });
+      const skipped = res.skipped ? ` (${res.skipped} duplikat diabaikan)` : '';
+      toast(`${res.added} nomor ditambahkan${skipped}`, 'ok');
+      if (input) input.value = '';
+      await renderDetailPage(id);
+    } catch (err) {
+      toast(err.message, 'error');
+    } finally {
+      UI.btnBusy(btn, false);
+    }
+  }
+
+  /**
+   * Hapus satu nomor dari broadcast. Nomor yang pesannya SUDAH terkirim diberi
+   * peringatan terpisah — menghapusnya menghilangkan jejak pengiriman, jadi
+   * backend baru menerima setelah konfirmasi eksplisit (?confirmSent=true).
+   */
+  async function removeRecipient(broadcastId, recipientId, number, status, btn) {
+    if (UI.isBusy(btn)) return;
+    const isSent = status === 'sent';
+    const ok = await Modal.confirm({
+      title: isSent ? 'Hapus nomor yang sudah terkirim?' : `Hapus nomor ${number}?`,
+      body: isSent
+        ? `Pesan ke ${number} sudah benar-benar terkirim. Menghapusnya akan menghilangkan jejak pengiriman dari riwayat dan tidak bisa dibatalkan.`
+        : `Nomor ${number} akan dihapus dari broadcast ini.`,
+      okText: isSent ? 'Tetap hapus' : 'Hapus',
+      danger: true,
+    });
+    if (!ok) return;
+    UI.btnBusy(btn, true, 'Menghapus…');
+    try {
+      const q = isSent ? '?confirmSent=true' : '';
+      await API.del(`/api/broadcasts/${broadcastId}/recipients/${recipientId}${q}`);
+      toast('Nomor dihapus', 'ok');
+      await renderDetailPage(broadcastId);
+    } catch (err) {
+      toast(err.message, 'error');
+    } finally {
+      UI.btnBusy(btn, false);
+    }
+  }
+
+  return {
+    load,
+    openDetail,
+    renderDetailPage,
+    backToList,
+    cancel,
+    retryFailed,
+    addRecipients,
+    removeRecipient,
+  };
 })();
 
 window.History = History;

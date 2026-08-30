@@ -272,6 +272,22 @@ textarea { resize: vertical; }
   margin-top: 6px;
 }
 
+/* Tambah nomor di detail history (hanya saat broadcast belum diproses) */
+.recipient-add {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 16px 0 6px;
+}
+.recipient-add input {
+  flex: 1;
+  max-width: 520px;
+}
+.hint-edit {
+  font-size: 12px;
+  margin: 0 0 12px;
+}
+
 /* ---------- Badge ---------- */
 .badge {
   display: inline-flex;
