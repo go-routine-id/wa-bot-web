@@ -95,8 +95,9 @@ const Broadcast = (() => {
       if (sec <= 0) {
         preview.textContent = 'Masukkan angka jeda positif';
       } else {
-        const estRpm = Math.round(60 / sec);
-        preview.textContent = `Jeda ${sec} detik antar pesan (~${estRpm} pesan/menit)`;
+        const estRpm = 60 / sec;
+        const rpmHint = estRpm >= 1 ? `~${Math.round(estRpm)} pesan/menit` : 'kurang dari 1 pesan/menit';
+        preview.textContent = `Jeda ${sec} detik antar pesan (${rpmHint})`;
       }
     } else {
       const rpm = parseInt(document.getElementById('bc-rate').value, 10) || 0;
