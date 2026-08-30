@@ -7,6 +7,10 @@
  */
 const History = (() => {
   let pollTimer = null;
+  // Recipient yang sedang tampil di halaman detail. Dipakai handler tombol Hapus
+  // supaya nomor TIDAK perlu di-interpolasi ke dalam atribut onclick — lihat catatan
+  // keamanan di renderDetail().
+  let detailRecipients = [];
 
   function tabActive() {
     const el = document.getElementById('tab-history');
@@ -169,6 +173,14 @@ const History = (() => {
     // menolak status lain (runner memakai snapshot recipient begitu mulai jalan).
     const editable = b.status === 'pending';
 
+    // Nomor tujuan TIDAK boleh diinterpolasi ke dalam atribut onclick: escapeHtml
+    // hanya aman untuk konteks HTML, sedangkan browser men-decode entity (mis.
+    // &#39;) SEBELUM isi onclick di-parse sebagai JS — apostrof pada nomor tak
+    // valid (parseTargets menyimpan teks mentah saat token tidak punya digit sama
+    // sekali) akan keluar dari string literal dan mengeksekusi kode. Karena itu
+    // tombol hanya membawa id numerik; nomor & status dibaca dari cache di bawah.
+    detailRecipients = recipients;
+
     const rows = recipients
       .map(
         (r) => `
@@ -178,7 +190,7 @@ const History = (() => {
         <td>${escapeHtml(r.error || '')}</td>
         <td>${escapeHtml(r.sentAt || '')}</td>
         ${editable
-          ? `<td><button class="btn small danger" onclick="History.removeRecipient(${b.id}, ${r.id}, '${escapeHtml(r.recipientNumber)}', '${r.status}', this)">Hapus</button></td>`
+          ? `<td><button class="btn small danger" onclick="History.removeRecipient(${b.id}, ${r.id}, this)">Hapus</button></td>`
           : ''}
       </tr>`
       )
@@ -339,9 +351,16 @@ const History = (() => {
    * peringatan terpisah — menghapusnya menghilangkan jejak pengiriman, jadi
    * backend baru menerima setelah konfirmasi eksplisit (?confirmSent=true).
    */
-  async function removeRecipient(broadcastId, recipientId, number, status, btn) {
+  async function removeRecipient(broadcastId, recipientId, btn) {
     if (UI.isBusy(btn)) return;
-    const isSent = status === 'sent';
+    const target = detailRecipients.find((r) => r.id === recipientId);
+    if (!target) {
+      toast('Nomor sudah tidak ada di daftar — memuat ulang…', 'error');
+      await renderDetailPage(broadcastId);
+      return;
+    }
+    const number = target.recipientNumber;
+    const isSent = target.status === 'sent';
     const ok = await Modal.confirm({
       title: isSent ? 'Hapus nomor yang sudah terkirim?' : `Hapus nomor ${number}?`,
       body: isSent
