@@ -1248,3 +1248,16 @@ blockquote {
 .imp-drop { margin-bottom: 4px; }
 .imp-drop .fd-ico { margin-bottom: 6px; }
 .imp-choose { margin-top: 12px; pointer-events: none; } /* klik ditangani dropzone */
+
+/* Dropdown custom di dalam dialog & toolbar kontak — menggantikan <select>
+   bawaan browser, yang digambar OS sehingga menembus batas dialog. */
+.picker-filters .cs { flex: 0 0 200px; }
+.picker-filters .pk-label { display: none; }
+.picker-field .cs { margin-bottom: 8px; }
+.picker-field .ps-label { display: none; }
+.ct-toolbar .cs { flex: 0 0 210px; }
+.ct-toolbar .ct-label-filter { display: none; }
+/* Panel dropdown harus di atas isi dialog, termasuk daftar yang bisa di-scroll. */
+.picker .cs-panel, .ct-toolbar .cs-panel { z-index: 60; }
+.modal-select-wrap .modal-select { display: none; }
+.modal-select-wrap .cs-panel { z-index: 60; }

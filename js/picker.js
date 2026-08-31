@@ -143,10 +143,11 @@ const Picker = (() => {
          </div>
          <div class="picker-filters">
            <input type="text" class="pk-search" placeholder="Cari nama, nomor, email…">
+           <div class="cs pk-label-cs" data-cs-placeholder="Semua label"></div>
            <select class="pk-label">
              <option value="">Semua label</option>
              <option value="__fav__">⭐ Favorit</option>
-             ${labels.map((l) => `<option value="${escapeHtml(l.id)}">${l.is_favorite ? '★ ' : ''}${escapeHtml(l.name)} (${l.contact_count})</option>`).join('')}
+             ${labels.map((l) => `<option value="${escapeHtml(l.id)}" data-desc="${l.contact_count} kontak">${l.is_favorite ? '★ ' : ''}${escapeHtml(l.name)}</option>`).join('')}
            </select>
          </div>
          <div class="picker-bulk">
@@ -168,6 +169,9 @@ const Picker = (() => {
     const countEl = dlg.querySelector('.pk-count');
     const searchEl = dlg.querySelector('.pk-search');
     const labelEl = dlg.querySelector('.pk-label');
+    // <select> bawaan browser digambar oleh OS: ia menembus batas dialog dan
+    // memakai tema sistem, sehingga terlihat asing di tengah dialog ini.
+    const labelCs = CustomSelect.attach(dlg.querySelector('.pk-label-cs'), labelEl);
 
     function updateCount() {
       const n = chosen.size;
@@ -275,6 +279,10 @@ const Picker = (() => {
         b.classList.toggle('on', !favoriteOnly && b.dataset.id === labelId);
       });
       labelEl.value = favoriteOnly ? '__fav__' : labelId;
+      // Mengubah .value lewat kode TIDAK memicu event change, jadi label pada
+      // trigger dropdown harus disegarkan sendiri — kalau tidak, ia tetap
+      // menampilkan pilihan sebelumnya sementara filternya sudah berganti.
+      labelCs.refresh();
     }
 
     dlg.querySelector('.pk-fav').addEventListener('click', () => {
@@ -326,7 +334,11 @@ const Picker = (() => {
     });
 
     return new Promise((resolve) => {
-      const finish = finisher(dlg, resolve);
+      const base = finisher(dlg, resolve);
+      const finish = (v) => {
+        labelCs.destroy(); // lepas listener document milik dropdown
+        base(v);
+      };
       wireDismiss(dlg, finish);
       dlg.querySelector('.picker-cancel').addEventListener('click', () => finish(null));
       dlg.querySelector('.picker-ok').addEventListener('click', () => {
@@ -353,9 +365,10 @@ const Picker = (() => {
          <div class="modal-body">${count} nomor akan disimpan. Nomor yang sudah ada di daftar kontak tidak akan diduplikasi.</div>
          <div class="picker-field">
            <label>Beri label (opsional)</label>
+           <div class="cs ps-label-cs" data-cs-placeholder="— tanpa label —"></div>
            <select class="ps-label">
              <option value="">— tanpa label —</option>
-             ${labels.map((l) => `<option value="${escapeHtml(l.id)}">${escapeHtml(l.name)} (${l.contact_count})</option>`).join('')}
+             ${labels.map((l) => `<option value="${escapeHtml(l.id)}" data-desc="${l.contact_count} kontak">${l.is_favorite ? '★ ' : ''}${escapeHtml(l.name)}</option>`).join('')}
              <option value="__new__">+ Buat label baru…</option>
            </select>
            <input type="text" class="ps-new hidden" placeholder="Nama label baru">
@@ -369,6 +382,7 @@ const Picker = (() => {
     );
 
     const sel = dlg.querySelector('.ps-label');
+    const selCs = CustomSelect.attach(dlg.querySelector('.ps-label-cs'), sel);
     const newInput = dlg.querySelector('.ps-new');
     sel.addEventListener('change', () => {
       const isNew = sel.value === '__new__';
@@ -381,7 +395,11 @@ const Picker = (() => {
     });
 
     return new Promise((resolve) => {
-      const finish = finisher(dlg, resolve);
+      const base = finisher(dlg, resolve);
+      const finish = (v) => {
+        selCs.destroy();
+        base(v);
+      };
       wireDismiss(dlg, finish);
       dlg.querySelector('.picker-cancel').addEventListener('click', () => finish(null));
       dlg.querySelector('.picker-ok').addEventListener('click', () => {

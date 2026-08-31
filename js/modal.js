@@ -14,6 +14,10 @@
 const Modal = (() => {
   let dlg = null;      // <dialog> tunggal, dipakai ulang
   let resolver = null; // resolve() promise yang sedang menunggu
+  // Dropdown custom untuk mode 'select'. Dibangun sekali bersama <dialog>-nya
+  // dan hidup selama halaman, jadi destroy() tidak diperlukan di sini —
+  // berbeda dari dropdown di dialog Picker yang dibuang tiap kali ditutup.
+  let selectCs = null;
 
   function build() {
     dlg = document.createElement('dialog');
@@ -28,6 +32,7 @@ const Modal = (() => {
         </div>
         <div class="modal-select-wrap hidden">
           <label class="modal-select-label"></label>
+          <div class="cs modal-select-cs" data-cs-placeholder="Pilih…"></div>
           <select class="modal-select"></select>
         </div>
         <div class="modal-actions">
@@ -36,6 +41,10 @@ const Modal = (() => {
         </div>
       </div>`;
     document.body.appendChild(dlg);
+
+    // <select> bawaan browser digambar oleh OS: temanya tidak mengikuti app dan
+    // panelnya menembus batas dialog.
+    selectCs = CustomSelect.attach(dlg.querySelector('.modal-select-cs'), dlg.querySelector('.modal-select'));
 
     dlg.querySelector('.modal-cancel').addEventListener('click', () => close(false));
     dlg.querySelector('.modal-ok').addEventListener('click', () => close(true));
@@ -108,6 +117,8 @@ const Modal = (() => {
           return `<option value="${escapeHtml(optVal)}" ${selected}>${escapeHtml(optLabel)}</option>`;
         })
         .join('');
+      // Opsi baru ditulis langsung ke <select>; dropdown custom membacanya ulang.
+      selectCs.refresh();
     }
 
     const okBtn = dlg.querySelector('.modal-ok');
@@ -122,8 +133,7 @@ const Modal = (() => {
       input.focus();
       input.select();
     } else if (mode === 'select') {
-      const sel = dlg.querySelector('.modal-select');
-      sel.focus();
+      dlg.querySelector('.modal-select-cs .cs-trigger').focus();
     } else {
       okBtn.focus();
     }

@@ -210,9 +210,10 @@ const CustomSelect = (() => {
     // Klik opsi (div non-focusable) memicu focusout dengan relatedTarget null
     // (fokus pindah ke body) — jangan tutup di situ, biarkan event click yang
     // memilih. Tab / klik elemen lain / klik di luar tetap menutup.
-    document.addEventListener('click', (e) => {
+    const onDocClick = (e) => {
       if (open && !root.contains(e.target)) closePanel();
-    });
+    };
+    document.addEventListener('click', onDocClick);
     root.addEventListener('focusout', (e) => {
       if (open && e.relatedTarget && !root.contains(e.relatedTarget)) closePanel();
     });
@@ -224,8 +225,16 @@ const CustomSelect = (() => {
       if (open) renderList();
     }
 
+    // destroy WAJIB dipanggil untuk dropdown yang dibangun di dalam dialog
+    // sementara. Listener di document tidak ikut hilang saat elemennya dibuang
+    // dari DOM: tanpa ini, tiap kali dialog dibuka ia menumpuk satu listener
+    // yang menahan referensi ke DOM yang sudah mati.
+    function destroy() {
+      document.removeEventListener('click', onDocClick);
+    }
+
     refresh();
-    return { refresh };
+    return { refresh, destroy };
   }
 
   /** Bangun semua instance (.cs[data-cs-for]) dari DOM saat halaman siap. */
@@ -242,9 +251,24 @@ const CustomSelect = (() => {
     instances.forEach((i) => i.refresh());
   }
 
+  /**
+   * Bangun dropdown untuk markup yang dibuat DINAMIS (mis. di dalam dialog),
+   * yang tidak ada saat init() berjalan di DOMContentLoaded.
+   *
+   * Sengaja TIDAK didaftarkan ke `instances`: elemennya berumur pendek, dan
+   * refreshAll() yang menyentuh instance dari dialog yang sudah ditutup hanya
+   * membuang waktu pada DOM yang sudah mati. Pemanggil memegang handle-nya
+   * sendiri, dan WAJIB memanggil destroy() saat dialognya ditutup.
+   */
+  function attach(root, select) {
+    select.classList.add('cs-native');
+    select.hidden = true;
+    return buildInstance(root, select);
+  }
+
   document.addEventListener('DOMContentLoaded', init);
 
-  return { init, refreshAll };
+  return { init, refreshAll, attach };
 })();
 
 window.CustomSelect = CustomSelect;

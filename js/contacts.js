@@ -74,6 +74,7 @@ const Contacts = (() => {
   let pageState = { page: 1, totalPages: 1, total: 0 };
   let filterState = { search: '', labelId: '', favoriteOnly: false };
   let searchTimer = null;
+  let labelSelectCs = null; // handle dropdown label di toolbar
   // Kontak yang sedang dibuka di halaman detail (/contacts/:id), beserta labelnya.
   let detailContact = null;
   let detailLabels = [];
@@ -247,18 +248,24 @@ const Contacts = (() => {
     const opts = labelsCache
       .map(
         (l) =>
-          `<option value="${escapeHtml(l.id)}"${l.id === filterState.labelId ? ' selected' : ''}>${escapeHtml(l.name)} (${l.contact_count})</option>`
+          `<option value="${escapeHtml(l.id)}" data-desc="${l.contact_count} kontak"${l.id === filterState.labelId ? ' selected' : ''}>${l.is_favorite ? '★ ' : ''}${escapeHtml(l.name)}</option>`
       )
       .join('');
     el.innerHTML = `
       <input type="text" id="ct-search" class="ct-search" placeholder="Cari nama, nomor, email…" value="${escapeHtml(filterState.search)}">
       <button type="button" id="ct-fav-filter" class="btn small star-toggle${filterState.favoriteOnly ? ' on' : ''}"
               title="Tampilkan hanya kontak berbintang">${filterState.favoriteOnly ? '★' : '☆'} Favorit</button>
+      <div class="cs ct-label-cs" data-cs-placeholder="Semua label"></div>
       <select id="ct-label-filter" class="ct-label-filter">
         <option value="">Semua label</option>
         ${opts}
       </select>
       <span class="ct-count muted">${pageState.total} kontak</span>`;
+
+    // Toolbar dibangun ulang tiap load(), jadi instance lama harus dilepas dulu —
+    // kalau tidak, tiap penyaringan menumpuk satu listener document.
+    if (labelSelectCs) labelSelectCs.destroy();
+    labelSelectCs = CustomSelect.attach(el.querySelector('.ct-label-cs'), document.getElementById('ct-label-filter'));
 
     const search = document.getElementById('ct-search');
     search.addEventListener('input', () => {
