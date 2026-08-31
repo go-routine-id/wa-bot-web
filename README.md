@@ -36,7 +36,7 @@ Setelah itu:
    localStorage.setItem('WA_CONTACT_BASE', '')   // matikan fitur Kontak
    ```
    Dikosongkan = tab **Kontak** menjelaskan bahwa fiturnya mati, dan fitur broadcast tetap jalan normal.
-5. Buka `http://localhost:5173` (tiap menu punya URL sendiri — `http://localhost:5173/sessions`, `/create`, `/templates`, `/contacts`, `/history`; back/forward browser & deep-link berfungsi). Detail broadcast punya halaman sendiri: `/history/:id` (mis. `/history/13`). Mulai dari tab **Sesi WhatsApp** → tambah sesi & scan QR.
+5. Buka `http://localhost:5173` (tiap menu punya URL sendiri — `http://localhost:5173/sessions`, `/create`, `/templates`, `/contacts`, `/history`; back/forward browser & deep-link berfungsi). Halaman detail punya URL sendiri: `/history/:id` (mis. `/history/13`) dan `/contacts/:id`. Mulai dari tab **Sesi WhatsApp** → tambah sesi & scan QR.
 
 ## Memakai
 
@@ -73,7 +73,8 @@ Buat template teks (opsional + 1 gambar) untuk dipakai berulang di broadcast. Te
 
 Butuh layanan [go-contact](https://github.com/go-routine-id/go-contact) — lihat langkah 4 di Quickstart.
 
-- **CRUD kontak**: nama, nomor, email, catatan. Nomor yang bukan format WhatsApp valid (8–15 digit) ditandai ⚠️.
+- **Tambah kontak** lewat form di atas daftar: nama, nomor, email, alamat, catatan. Nomor yang bukan format WhatsApp valid (8–15 digit) ditandai ⚠️.
+- **Mengubah kontak punya halaman sendiri**: `/contacts/:id` (klik **Edit** di baris, atau buka URL-nya langsung). Halaman ini memuat form lengkap, label kontak, tombol hapus, dan waktu dibuat/diubah. Back/forward browser & deep-link berfungsi, sama seperti detail broadcast. Mengosongkan sebuah kolom di sini benar-benar menghapus isinya.
 - **Label** sebagai kelompok: buat, ganti nama, hapus. Menghapus label TIDAK menghapus kontaknya.
 - Tombol **Label** per baris mengatur label satu kontak sekaligus (centang = pasang, hilangkan semua centang = lepas semua).
 - **Pencarian** (nama/nomor) dan **filter per label** — filter inilah yang dipakai untuk broadcast ke satu kelompok.
@@ -90,13 +91,13 @@ index.html      # entry UI
 css/style.css
 js/
   api.js        # fetch wrapper (prefix base URL)
-  router.js     # URL routing (History API): /sessions, /create, /templates, /contacts, /history
+  router.js     # URL routing (History API): /sessions, /create, /templates, /contacts, /contacts/:id, /history
   app.js        # init tab + render aktif
   connection.js # session manager: list kartu sesi + QR + countdown + tambah/rename/hapus/logout/rescan
   templates.js  # CRUD template
   broadcast.js  # buat broadcast (dropdown sesi pengirim + submit sessionId)
   history.js    # history (kolom sesi) + halaman detail /history/:id + retry gagal + simpan ke kontak
-  contacts.js   # tab Kontak: CRUD kontak & label — memanggil go-contact (base URL sendiri)
+  contacts.js   # tab Kontak: daftar + halaman /contacts/:id, CRUD kontak & label (go-contact)
   picker.js     # dialog kaya: pilih kontak, centang label, overlay progres
 ```
 

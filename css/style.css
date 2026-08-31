@@ -1103,3 +1103,12 @@ blockquote {
   box-shadow: var(--shadow-lg);
   font-weight: 600;
 }
+
+/* ---------- Halaman detail kontak (/contacts/:id) ---------- */
+#ct-detail .detail-head { margin-bottom: 18px; }
+#ct-detail .detail-head h3 { margin: 0; }
+#ct-detail .card { margin-bottom: 4px; }
+.ctd-hint { font-size: 12px; margin: 2px 0 0; }
+.ctd-meta { font-size: 12px; margin-top: 18px; }
+#ct-detail .row.actions { margin-top: 18px; }
+#ct-detail small.rcp-warn { display: block; margin-top: 6px; }

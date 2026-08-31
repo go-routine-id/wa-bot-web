@@ -21,6 +21,11 @@ const Router = (() => {
   // Halaman detail broadcast: /history/:id (angka id broadcast)
   const DETAIL_RE = /^\/history\/(\d+)$/;
 
+  // Halaman detail kontak: /contacts/:id. Id kontak adalah UUID, bukan angka —
+  // polanya dibatasi ketat supaya path lain di bawah /contacts (kalau nanti ada,
+  // mis. /contacts/import) tidak salah ditangkap sebagai id.
+  const CONTACT_RE = /^\/contacts\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i;
+
   function tabFromPath(pathname) {
     const route = ROUTES.find((r) => r.path === pathname);
     return route ? route.tab : null;
@@ -41,6 +46,15 @@ const Router = (() => {
     App.showTab(tab);
   }
 
+  /** Buka halaman detail kontak: pushState ke /contacts/:id lalu render detail. */
+  function goContact(id) {
+    const path = `/contacts/${id}`;
+    if (window.location.pathname !== path) {
+      window.history.pushState({ contactId: id }, '', path);
+    }
+    Contacts.renderDetailPage(id);
+  }
+
   /** Buka halaman detail broadcast: pushState ke /history/:id lalu render detail. */
   function goDetail(id) {
     const path = `/history/${id}`;
@@ -58,6 +72,13 @@ const Router = (() => {
       // Halaman detail broadcast → tab history aktif + render detail.
       App.showTab('history');
       History.renderDetailPage(Number(detailMatch[1]));
+      return;
+    }
+    const contactMatch = path.match(CONTACT_RE);
+    if (contactMatch) {
+      // Halaman detail kontak → tab kontak aktif + render detail.
+      App.showTab('contacts');
+      Contacts.renderDetailPage(contactMatch[1]);
       return;
     }
     let tab = tabFromPath(path);
@@ -91,7 +112,7 @@ const Router = (() => {
     renderFromLocation(); // deep-link / refresh di path non-root
   }
 
-  return { init, navigate, tabFromPath, goDetail };
+  return { init, navigate, tabFromPath, goDetail, goContact };
 })();
 
 window.Router = Router;

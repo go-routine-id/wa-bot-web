@@ -136,8 +136,11 @@
       <h2>Kontak</h2>
       <p class="muted">Simpan nomor sekali, pakai berulang kali. Kelompokkan dengan label supaya bisa dibroadcast per kelompok.</p>
 
+      <div id="ct-detail" class="hidden"></div>
+
+      <div id="ct-list-view">
       <div class="card">
-        <h3 id="ct-form-title">Tambah Kontak</h3>
+        <h3>Tambah Kontak</h3>
         <form id="ct-form" onsubmit="event.preventDefault(); Contacts.save();">
           <div class="row">
             <div class="col">
@@ -155,13 +158,14 @@
               <input type="text" id="ct-email" placeholder="budi@contoh.com">
             </div>
             <div class="col">
-              <label for="ct-notes">Catatan (opsional)</label>
-              <input type="text" id="ct-notes" placeholder="cth: pelanggan sejak 2024">
+              <label for="ct-address">Alamat (opsional)</label>
+              <input type="text" id="ct-address" placeholder="cth: Jl. Merdeka 10, Bandung">
             </div>
           </div>
+          <label for="ct-notes">Catatan (opsional)</label>
+          <textarea id="ct-notes" rows="2" placeholder="cth: pelanggan sejak 2024"></textarea>
           <div class="row actions">
             <button type="submit" class="btn primary">Simpan Kontak</button>
-            <button type="button" class="btn hidden" id="ct-cancel-edit" onclick="Contacts.clearForm()">Batal</button>
           </div>
         </form>
       </div>
@@ -174,6 +178,7 @@
 
       <div id="ct-toolbar" class="ct-toolbar"></div>
       <div id="ct-content"><div class="skeleton-wrap"><div class="skeleton sk-row"></div><div class="skeleton sk-row"></div><div class="skeleton sk-row"></div></div></div>
+      </div>
     </section>
 
     <!-- ============ History ============ -->
