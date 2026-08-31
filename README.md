@@ -114,7 +114,11 @@ Sebelum menulis apa pun, layar **pratinjau** menandai tiap baris:
 | **ganda** | nomor yang sama muncul lebih dari sekali di dalam berkas; hanya kemunculan pertama diproses |
 | **tidak valid** | dilewati, dengan alasannya (mis. `08…` yang belum berkode negara) |
 
-> Karena nomor yang sudah ada dilewati, **mengimpor berkas yang sama dua kali aman** — tidak ada yang tergandakan. Kalau impor terputus di tengah, cukup jalankan lagi.
+> Karena nomor yang sudah ada dilewati, **mengimpor berkas yang sama dua kali aman** — tidak ada yang tergandakan.
+
+Pratinjau dan impor memakai **endpoint yang sama** (`POST /api/contacts/import` milik go-contact); pratinjau hanya menambahkan `dry_run: true`, yang membuat server menjalankan seluruh proses lalu membatalkan transaksinya. Jadi yang kamu lihat di pratinjau dihitung oleh kode yang persis sama dengan yang menulis.
+
+Seluruh berkas dikirim dalam **satu request dan satu transaksi**: kalau gagal, tidak ada separuh data yang tertinggal. Batasnya **5.000 baris per impor** — berkas lebih besar perlu dipecah.
 
 > Kontak dimuat 100 per permintaan karena itu batas layanan; "Pilih semua hasil" mengambil seluruh halaman, bukan hanya yang tampil.
 
@@ -135,7 +139,7 @@ js/
   history.js    # history (kolom sesi) + halaman detail /history/:id + retry gagal + simpan ke kontak
   contacts.js   # tab Kontak: daftar + halaman /contacts/:id, CRUD kontak & label (go-contact)
   picker.js     # dialog kaya: pilih kontak, centang label, overlay progres
-  import.js     # impor CSV: parser RFC 4180, pratinjau per baris, eksekusi
+  import.js     # impor CSV: parser RFC 4180 + pratinjau/eksekusi lewat endpoint bulk
 ```
 
 ## Troubleshooting

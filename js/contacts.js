@@ -983,11 +983,11 @@ const Contacts = (() => {
     // dipakai Picker & modul lain
     digitsOf,
     isSendableNumber,
-    // dipakai ContactImport: klien HTTP & pengambil data lengkap dipakai ulang
-    // supaya impor tidak menduplikasi logika paginasi & penanganan error.
+    // Dipakai ContactImport supaya base URL, amplop error, dan pesan
+    // "tidak bisa menghubungi layanan kontak" tidak ditulis dua kali.
+    // fetchAllContacts/fetchAllLabels TIDAK lagi diekspor: sejak impor memakai
+    // endpoint bulk, browser tak perlu menarik seluruh kontak untuk dedup.
     http: ContactHTTP,
-    fetchAllContacts,
-    fetchAllLabels,
   };
 })();
 
