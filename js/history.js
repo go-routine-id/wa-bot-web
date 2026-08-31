@@ -111,7 +111,7 @@ const History = (() => {
         <td>${b.mode}</td>
         <td>${b.ratePerMinute}/mnt</td>
         <td>${b.sentCount} / ${b.failedCount} / ${b.totalRecipients}</td>
-        <td>${escapeHtml(fmtTime(b.createdAt))}</td>
+        <td class="col-time" title="${escapeHtml(fmtTime(b.createdAt))}">${escapeHtml(fmtTimeShort(b.createdAt))}</td>
         <td>
           <button class="btn small" onclick="History.openDetail(${b.id})">Detail</button>
           ${b.retryableFailedCount > 0 && ['completed', 'failed'].includes(b.status)
@@ -188,7 +188,7 @@ const History = (() => {
         <td>${escapeHtml(r.recipientNumber)}</td>
         <td><span class="badge badge-${r.status}">${r.status}</span></td>
         <td>${escapeHtml(r.error || '')}</td>
-        <td>${escapeHtml(fmtTime(r.sentAt))}</td>
+        <td class="col-time" title="${escapeHtml(fmtTime(r.sentAt))}">${escapeHtml(fmtTimeShort(r.sentAt))}</td>
         ${editable
           ? `<td><button class="btn small danger" onclick="History.removeRecipient(${b.id}, ${r.id}, this)">Hapus</button></td>`
           : ''}

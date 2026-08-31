@@ -331,7 +331,7 @@ const Contacts = (() => {
         <td>${escapeHtml(c.phone)}${isSendableNumber(c.phone) ? '' : ' <span class="ct-warn" title="Bukan format nomor WhatsApp yang valid (8–15 digit)">⚠️</span>'}</td>
         <td>${escapeHtml(c.email || '—')}</td>
         <td class="ct-notes">${escapeHtml(c.notes || '')}</td>
-        <td>${escapeHtml(fmtTime(c.updated_at))}</td>
+        <td class="col-time" title="${escapeHtml(fmtTime(c.updated_at))}">${escapeHtml(fmtTimeShort(c.updated_at))}</td>
         <td class="ct-actions">
           <button class="btn small" data-act="labels" data-id="${escapeHtml(c.id)}">Label</button>
           <button class="btn small" data-act="edit" data-id="${escapeHtml(c.id)}">Edit</button>

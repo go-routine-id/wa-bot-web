@@ -63,17 +63,53 @@ function escapeHtml(str) {
  * Bentuk pertama WAJIB diberi 'Z': tanpa itu JS menganggapnya waktu lokal,
  * sehingga tampil meleset sebesar offset zona (WIB = 7 jam, bahkan beda tanggal).
  */
-function fmtTime(raw) {
-  if (!raw) return '';
+function parseTime(raw) {
+  if (!raw) return null;
   const str = String(raw);
   const hasZone = /[zZ]$|[+-]\d{2}:?\d{2}$/.test(str);
   const d = new Date(hasZone ? str : str.replace(' ', 'T') + 'Z');
-  if (Number.isNaN(d.getTime())) return str; // format tak dikenal → tampilkan apa adanya
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function fmtTime(raw) {
+  const d = parseTime(raw);
+  if (!d) return raw ? String(raw) : ''; // format tak dikenal → tampilkan apa adanya
   const pad = (n) => String(n).padStart(2, '0');
   return (
     `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ` +
     `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
   );
+}
+
+const BULAN_SINGKAT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+
+/**
+ * Waktu ringkas untuk KOLOM TABEL: "3 menit lalu", "2 jam lalu", "31 Agu 2026".
+ *
+ * Timestamp penuh (2026-08-31 21:55:20) terlalu panjang untuk kolom sempit —
+ * ia membungkus jadi dua baris dan membuat tinggi baris tabel tidak rata.
+ * Bentuk relatif juga lebih mudah dibaca sekilas: yang biasanya ingin diketahui
+ * adalah "baru atau lama", bukan detiknya.
+ *
+ * Nilai persisnya TIDAK hilang — pemanggil menaruh fmtTime() di atribut title
+ * sehingga tetap terbaca saat kursor diarahkan ke sana.
+ */
+function fmtTimeShort(raw) {
+  const d = parseTime(raw);
+  if (!d) return raw ? String(raw) : '';
+
+  const detik = Math.floor((Date.now() - d.getTime()) / 1000);
+  // Jam mesin bisa mundur sedikit terhadap server; tanpa penjagaan ini akan
+  // muncul "-1 menit lalu".
+  if (detik < 60) return 'baru saja';
+  if (detik < 3600) return `${Math.floor(detik / 60)} menit lalu`;
+  if (detik < 86400) return `${Math.floor(detik / 3600)} jam lalu`;
+  if (detik < 7 * 86400) return `${Math.floor(detik / 86400)} hari lalu`;
+
+  const tanggal = `${d.getDate()} ${BULAN_SINGKAT[d.getMonth()]}`;
+  // Tahun hanya ditulis bila berbeda dari sekarang — di dalam tahun berjalan ia
+  // hanya menambah panjang tanpa menambah informasi.
+  return d.getFullYear() === new Date().getFullYear() ? tanggal : `${tanggal} ${d.getFullYear()}`;
 }
 
 /**

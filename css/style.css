@@ -1263,3 +1263,5 @@ blockquote {
 .modal-select-wrap .cs-panel { z-index: 60; }
 /* Kolom aksi tabel template: tombol harus sebaris, bukan membungkus ke bawah. */
 .tpl-actions { white-space: nowrap; }
+/* Kolom waktu di tabel: jangan pernah membungkus jadi dua baris. */
+.col-time { white-space: nowrap; color: var(--muted); }
