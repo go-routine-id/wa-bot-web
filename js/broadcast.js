@@ -48,7 +48,7 @@ const Broadcast = (() => {
         sel.innerHTML = connected
           .map(
             (s) =>
-              `<option value="${escapeHtml(s.id)}"${s.userInfo?.number ? ` data-number="${s.userInfo.number}"` : ''}>${escapeHtml(s.name)}</option>`
+              `<option value="${escapeHtml(s.id)}"${s.userInfo?.number ? ` data-number="${escapeHtml(s.userInfo.number)}"` : ''}>${escapeHtml(s.name)}</option>`
           )
           .join('');
       }
