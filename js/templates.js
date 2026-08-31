@@ -30,10 +30,10 @@ const Templates = (() => {
         (t) => `
       <tr>
         <td>${escapeHtml(t.name)}</td>
-        <td>${escapeHtml((t.textContent || '').slice(0, 80))}</td>
+        <td>${escapeHtml(truncate(t.textContent, 80))}</td>
         <td>${t.mediaPath ? '🖼️ ada' : '—'}</td>
         <td>${escapeHtml(fmtTime(t.updatedAt))}</td>
-        <td>
+        <td class="tpl-actions">
           <button class="btn small" onclick="Templates.edit(${t.id})">Edit</button>
           <button class="btn small danger" onclick="Templates.remove(${t.id}, this)">Hapus</button>
         </td>

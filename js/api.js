@@ -76,6 +76,27 @@ function fmtTime(raw) {
   );
 }
 
+/**
+ * Potong teks untuk pratinjau tabel, aman terhadap emoji.
+ *
+ * String.slice() menghitung unit UTF-16, sedangkan emoji adalah pasangan
+ * surrogate — memotong tepat di tengahnya meninggalkan setengah karakter yang
+ * tampil sebagai �. Intl.Segmenter memotong per grapheme, jadi rangkaian emoji
+ * (bendera, keluarga ber-ZWJ, emoji berwarna kulit) juga tetap utuh.
+ *
+ * Menambahkan "…" hanya bila benar-benar terpotong: tanpa penanda, teks yang
+ * berhenti di tengah kata terbaca seolah datanya memang cuma segitu.
+ */
+function truncate(text, max) {
+  const str = String(text ?? '');
+  const units =
+    typeof Intl !== 'undefined' && Intl.Segmenter
+      ? [...new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(str)].map((s) => s.segment)
+      : [...str]; // fallback: iterasi per code point, tetap tidak memecah surrogate
+  if (units.length <= max) return str;
+  return units.slice(0, max).join('') + '…';
+}
+
 function toast(message, type = 'info') {
   const el = document.createElement('div');
   el.className = `toast ${type}`;

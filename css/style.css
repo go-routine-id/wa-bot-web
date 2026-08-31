@@ -1261,3 +1261,5 @@ blockquote {
 .picker .cs-panel, .ct-toolbar .cs-panel { z-index: 60; }
 .modal-select-wrap .modal-select { display: none; }
 .modal-select-wrap .cs-panel { z-index: 60; }
+/* Kolom aksi tabel template: tombol harus sebaris, bukan membungkus ke bawah. */
+.tpl-actions { white-space: nowrap; }
