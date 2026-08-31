@@ -209,6 +209,7 @@ const History = (() => {
         ${['completed', 'failed', 'cancelled'].includes(b.status)
           ? `<button class="btn small primary" onclick="History.rebroadcast(${b.id}, this)">Broadcast ulang</button>`
           : ''}
+        <button class="btn small" onclick="History.saveToContacts(${b.id}, this)">📇 Simpan ke kontak</button>
       </div>
       <div class="progress"><div class="progress-bar" style="width:${pct}%"></div></div>
       <p class="muted">
@@ -387,6 +388,30 @@ const History = (() => {
   }
 
   /**
+   * "Simpan ke kontak": simpan seluruh nomor broadcast ini ke layanan kontak
+   * (go-contact) agar bisa dipakai lagi nanti. Broadcast-nya sendiri tidak
+   * disentuh. Nomor yang sudah tersimpan tidak diduplikasi — pemeriksaannya ada
+   * di Contacts.saveNumbers.
+   */
+  async function saveToContacts(id, btn) {
+    if (UI.isBusy(btn)) return;
+    UI.btnBusy(btn, true, 'Menyiapkan…');
+    try {
+      const data = await API.get(`/api/broadcasts/${id}`);
+      const numbers = data.recipients.map((r) => r.recipientNumber);
+      if (numbers.length === 0) {
+        toast('Broadcast ini tidak punya nomor', 'error');
+        return;
+      }
+      await Contacts.saveNumbers(numbers, { suggestedLabel: `Broadcast #${id}` });
+    } catch (err) {
+      toast(err.message, 'error');
+    } finally {
+      UI.btnBusy(btn, false);
+    }
+  }
+
+  /**
    * "Broadcast ulang": salin teks + SEMUA nomor broadcast ini ke form Buat
    * Broadcast untuk diedit, lalu dikirim sebagai broadcast BARU. History yang
    * lama tidak disentuh sama sekali — ia catatan audit.
@@ -427,6 +452,7 @@ const History = (() => {
     addRecipients,
     removeRecipient,
     rebroadcast,
+    saveToContacts,
   };
 })();
 

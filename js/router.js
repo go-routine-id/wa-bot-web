@@ -14,6 +14,7 @@ const Router = (() => {
     { path: '/sessions', tab: 'connection' },
     { path: '/create', tab: 'create' },
     { path: '/templates', tab: 'templates' },
+    { path: '/contacts', tab: 'contacts' },
     { path: '/history', tab: 'history' },
   ];
 

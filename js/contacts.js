@@ -1,0 +1,694 @@
+'use strict';
+
+/**
+ * Kontak — antarmuka untuk layanan TERPISAH `go-contact`.
+ *
+ * Beda dari modul lain: modul ini TIDAK memakai `API` dari api.js, karena
+ * go-contact punya base URL sendiri (contactBase()) dan amplop respons yang
+ * berbeda — sukses `{success, data}`, error `{success:false, message}` — bukan
+ * `{error}` seperti wa-bot-service. Memakai API biasa akan membuat setiap pesan
+ * error tampil sebagai "HTTP 400" tanpa isi.
+ */
+const Contacts = (() => {
+  /* =======================================================================
+   * Klien HTTP ke go-contact
+   * ===================================================================== */
+
+  const ContactHTTP = (() => {
+    async function request(method, path, body) {
+      if (!contactsEnabled()) {
+        throw new Error('Layanan kontak dimatikan (WA_CONTACT_BASE kosong)');
+      }
+      const opts = { method, headers: {} };
+      if (body !== undefined) {
+        opts.headers['Content-Type'] = 'application/json';
+        opts.body = JSON.stringify(body);
+      }
+
+      let res;
+      try {
+        res = await fetch(contactBase() + path, opts);
+      } catch (err) {
+        // fetch hanya melempar untuk kegagalan jaringan/CORS. Bedakan dari error
+        // HTTP biasa: penyebab tersering adalah go-contact mati atau origin ini
+        // belum terdaftar di CORS_ORIGINS-nya — dan pesan bawaan browser
+        // ("Failed to fetch") tidak menyebut satu pun dari keduanya.
+        throw new Error(
+          `Tidak bisa menghubungi layanan kontak di ${contactBase()} — ` +
+            'pastikan go-contact berjalan dan origin ini terdaftar di CORS_ORIGINS-nya'
+        );
+      }
+
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg = json.message || `HTTP ${res.status}`;
+        // request_id dari go-contact membuat error bisa dilacak ke log server.
+        throw new Error(json.request_id ? `${msg} (ref: ${json.request_id})` : msg);
+      }
+      return json.data !== undefined ? json.data : json;
+    }
+
+    return {
+      get: (p) => request('GET', p),
+      post: (p, b) => request('POST', p, b ?? {}),
+      put: (p, b) => request('PUT', p, b),
+      del: (p) => request('DELETE', p),
+    };
+  })();
+
+  /* =======================================================================
+   * Konstanta & state
+   * ===================================================================== */
+
+  // Batas server: paginate_utils.Normalize meng-clamp limit > 100 menjadi 100.
+  // Meminta lebih TIDAK error — diam-diam dipotong — jadi jangan pernah kirim
+  // page-size lebih besar dan mengira dapat semuanya.
+  const SERVER_MAX_PAGE_SIZE = 100;
+
+  // Pengaman putaran "ambil semua halaman". Tanpa ini, satu bug paginasi di
+  // server (has_next selalu true) akan membuat browser meminta tanpa henti.
+  const MAX_FETCH_PAGES = 100; // = 10.000 kontak
+
+  let contactsCache = []; // kontak yang sedang tampil di tab
+  let labelsCache = [];
+  let pageState = { page: 1, totalPages: 1, total: 0 };
+  let filterState = { search: '', labelId: '' };
+  let editingId = null;
+  let searchTimer = null;
+
+  /** Digit saja — dipakai untuk dedup & untuk mengisi form broadcast. */
+  function digitsOf(phone) {
+    return String(phone || '').replace(/\D/g, '');
+  }
+
+  /** Mirror validasi wa-bot-service: 8–15 digit. */
+  function isSendableNumber(phone) {
+    return /^\d{8,15}$/.test(digitsOf(phone));
+  }
+
+  function qs(params) {
+    const p = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') p.set(k, v);
+    });
+    const s = p.toString();
+    return s ? `?${s}` : '';
+  }
+
+  /* =======================================================================
+   * Pengambilan data
+   * ===================================================================== */
+
+  /** Satu halaman kontak. */
+  async function fetchContactPage({ page = 1, pageSize = SERVER_MAX_PAGE_SIZE, search, labelId }) {
+    const path =
+      '/api/contacts' +
+      qs({ page, 'page-size': pageSize, search: search || undefined, 'label-id': labelId || undefined });
+    const data = await ContactHTTP.get(path);
+    return { items: data.items || [], pagination: data.pagination || null };
+  }
+
+  /**
+   * Ambil SELURUH kontak yang cocok filter, halaman demi halaman.
+   *
+   * Dipakai jalur yang harus lengkap atau tidak sama sekali: "pilih semua" di
+   * picker dan dedup saat menyimpan dari history. Mengambil satu halaman lalu
+   * memperlakukannya sebagai keseluruhan akan diam-diam membuang kontak ke-101
+   * dan seterusnya — persis kegagalan yang tak terlihat sampai datanya banyak.
+   *
+   * onProgress(loaded, total) dipanggil tiap halaman agar UI tidak terlihat menggantung.
+   */
+  async function fetchAllContacts({ search, labelId } = {}, onProgress) {
+    const all = [];
+    let page = 1;
+    let total = 0;
+    let truncated = false;
+
+    for (;;) {
+      const { items, pagination } = await fetchContactPage({ page, search, labelId });
+      all.push(...items);
+      total = pagination ? pagination.total : all.length;
+      if (onProgress) onProgress(all.length, total);
+
+      if (!pagination || !pagination.has_next) break;
+      page += 1;
+      if (page > MAX_FETCH_PAGES) {
+        truncated = true;
+        break;
+      }
+    }
+    return { items: all, total, truncated };
+  }
+
+  async function fetchAllLabels() {
+    const all = [];
+    let page = 1;
+    for (;;) {
+      const data = await ContactHTTP.get(
+        '/api/labels' + qs({ page, 'page-size': SERVER_MAX_PAGE_SIZE, 'order-by': 'name' })
+      );
+      all.push(...(data.items || []));
+      const pg = data.pagination;
+      if (!pg || !pg.has_next || page > MAX_FETCH_PAGES) break;
+      page += 1;
+    }
+    labelsCache = all;
+    return all;
+  }
+
+  /* =======================================================================
+   * Tab Kontak — daftar
+   * ===================================================================== */
+
+  async function load() {
+    const el = document.getElementById('ct-content');
+    if (!el) return;
+
+    if (!contactsEnabled()) {
+      el.innerHTML = UI.emptyState({
+        icon: '🔌',
+        title: 'Fitur kontak dimatikan',
+        body:
+          'Base URL layanan kontak kosong. Aktifkan di konsol browser: ' +
+          '<code>localStorage.setItem(\'WA_CONTACT_BASE\', \'http://localhost:7281\')</code> lalu muat ulang.',
+      });
+      return;
+    }
+
+    el.innerHTML = UI.skeleton('rows');
+    try {
+      await fetchAllLabels();
+      const { items, pagination } = await fetchContactPage({
+        page: pageState.page,
+        pageSize: 20,
+        search: filterState.search,
+        labelId: filterState.labelId,
+      });
+      contactsCache = items;
+      pageState = {
+        page: pagination ? pagination.page : 1,
+        totalPages: pagination ? pagination.total_pages : 1,
+        total: pagination ? pagination.total : items.length,
+      };
+      render();
+    } catch (err) {
+      el.innerHTML = UI.errorState(err.message, 'Contacts.load()');
+    }
+  }
+
+  function render() {
+    renderToolbar();
+    renderList();
+    renderLabelPanel();
+  }
+
+  function renderToolbar() {
+    const el = document.getElementById('ct-toolbar');
+    if (!el) return;
+    const opts = labelsCache
+      .map(
+        (l) =>
+          `<option value="${escapeHtml(l.id)}"${l.id === filterState.labelId ? ' selected' : ''}>${escapeHtml(l.name)} (${l.contact_count})</option>`
+      )
+      .join('');
+    el.innerHTML = `
+      <input type="text" id="ct-search" class="ct-search" placeholder="Cari nama, nomor, email…" value="${escapeHtml(filterState.search)}">
+      <select id="ct-label-filter" class="ct-label-filter">
+        <option value="">Semua label</option>
+        ${opts}
+      </select>
+      <span class="ct-count muted">${pageState.total} kontak</span>`;
+
+    const search = document.getElementById('ct-search');
+    search.addEventListener('input', () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        filterState.search = search.value.trim();
+        pageState.page = 1;
+        load();
+      }, 300);
+    });
+    document.getElementById('ct-label-filter').addEventListener('change', (e) => {
+      filterState.labelId = e.target.value;
+      pageState.page = 1;
+      load();
+    });
+  }
+
+  function renderList() {
+    const el = document.getElementById('ct-content');
+    if (!el) return;
+
+    if (contactsCache.length === 0) {
+      const filtering = filterState.search || filterState.labelId;
+      el.innerHTML = UI.emptyState({
+        icon: filtering ? '🔍' : '📇',
+        title: filtering ? 'Tidak ada kontak yang cocok' : 'Belum ada kontak',
+        body: filtering
+          ? 'Ubah kata kunci atau pilih label lain.'
+          : 'Tambah manual lewat form di atas, atau simpan dari broadcast lama di tab History.',
+      });
+      return;
+    }
+
+    // Nama/nomor TIDAK diinterpolasi ke atribut onclick — browser men-decode
+    // entity HTML sebelum isi onclick diparse sebagai JS, sehingga apostrof pada
+    // nama bisa keluar dari string literal dan mengeksekusi kode. Tombol hanya
+    // membawa id; datanya diambil dari contactsCache lewat event delegation.
+    const rows = contactsCache
+      .map(
+        (c) => `
+      <tr>
+        <td>${escapeHtml(c.name)}</td>
+        <td>${escapeHtml(c.phone)}${isSendableNumber(c.phone) ? '' : ' <span class="ct-warn" title="Bukan format nomor WhatsApp yang valid (8–15 digit)">⚠️</span>'}</td>
+        <td>${escapeHtml(c.email || '—')}</td>
+        <td class="ct-notes">${escapeHtml(c.notes || '')}</td>
+        <td>${escapeHtml(fmtTime(c.updated_at))}</td>
+        <td class="ct-actions">
+          <button class="btn small" data-act="labels" data-id="${escapeHtml(c.id)}">Label</button>
+          <button class="btn small" data-act="edit" data-id="${escapeHtml(c.id)}">Edit</button>
+          <button class="btn small danger" data-act="del" data-id="${escapeHtml(c.id)}">Hapus</button>
+        </td>
+      </tr>`
+      )
+      .join('');
+
+    const pager =
+      pageState.totalPages > 1
+        ? `<div class="ct-pager">
+             <button class="btn small" data-act="prev" ${pageState.page <= 1 ? 'disabled' : ''}>← Sebelumnya</button>
+             <span class="muted">Halaman ${pageState.page} dari ${pageState.totalPages}</span>
+             <button class="btn small" data-act="next" ${pageState.page >= pageState.totalPages ? 'disabled' : ''}>Berikutnya →</button>
+           </div>`
+        : '';
+
+    el.innerHTML = `
+      <table>
+        <thead><tr><th>Nama</th><th>Nomor</th><th>Email</th><th>Catatan</th><th>Diupdate</th><th>Aksi</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      ${pager}`;
+
+    el.onclick = (e) => {
+      const btn = e.target.closest('button[data-act]');
+      if (!btn) return;
+      const act = btn.dataset.act;
+      if (act === 'prev') {
+        pageState.page -= 1;
+        load();
+      } else if (act === 'next') {
+        pageState.page += 1;
+        load();
+      } else if (act === 'edit') {
+        edit(btn.dataset.id);
+      } else if (act === 'del') {
+        remove(btn.dataset.id, btn);
+      } else if (act === 'labels') {
+        manageLabels(btn.dataset.id, btn);
+      }
+    };
+  }
+
+  /* =======================================================================
+   * Form tambah / edit kontak
+   * ===================================================================== */
+
+  function clearForm() {
+    editingId = null;
+    ['ct-name', 'ct-phone', 'ct-email', 'ct-notes'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    const title = document.getElementById('ct-form-title');
+    if (title) title.textContent = 'Tambah Kontak';
+    const cancel = document.getElementById('ct-cancel-edit');
+    if (cancel) cancel.classList.add('hidden');
+  }
+
+  function edit(id) {
+    const c = contactsCache.find((x) => x.id === id);
+    if (!c) {
+      toast('Kontak tidak ada di daftar — memuat ulang…', 'error');
+      load();
+      return;
+    }
+    editingId = id;
+    document.getElementById('ct-name').value = c.name || '';
+    document.getElementById('ct-phone').value = c.phone || '';
+    document.getElementById('ct-email').value = c.email || '';
+    document.getElementById('ct-notes').value = c.notes || '';
+    document.getElementById('ct-form-title').textContent = `Edit: ${c.name}`;
+    document.getElementById('ct-cancel-edit').classList.remove('hidden');
+    document.getElementById('ct-name').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  async function save() {
+    const btn = document.querySelector('#ct-form button[type="submit"]');
+    if (UI.isBusy(btn)) return;
+    const name = document.getElementById('ct-name').value.trim();
+    const phone = document.getElementById('ct-phone').value.trim();
+    const email = document.getElementById('ct-email').value.trim();
+    const notes = document.getElementById('ct-notes').value.trim();
+
+    if (!name || !phone) {
+      toast('Nama dan nomor wajib diisi', 'error');
+      return;
+    }
+
+    UI.btnBusy(btn, true, 'Menyimpan…');
+    try {
+      // Kirim string kosong (bukan null) supaya field bisa DIKOSONGKAN saat edit —
+      // backend membedakan keduanya: null = jangan diubah, "" = kosongkan.
+      const body = { name, phone, email, notes };
+      if (editingId) {
+        await ContactHTTP.put(`/api/contacts/${editingId}`, body);
+        toast('Kontak diperbarui', 'ok');
+      } else {
+        await ContactHTTP.post('/api/contacts', body);
+        toast('Kontak ditambahkan', 'ok');
+      }
+      clearForm();
+      await load();
+    } catch (err) {
+      toast(err.message, 'error');
+    } finally {
+      UI.btnBusy(btn, false);
+    }
+  }
+
+  async function remove(id, btn) {
+    if (UI.isBusy(btn)) return;
+    const c = contactsCache.find((x) => x.id === id);
+    const ok = await Modal.confirm({
+      title: c ? `Hapus kontak ${c.name}?` : 'Hapus kontak ini?',
+      body: c ? `Nomor ${c.phone} akan dihapus dari daftar kontak.` : '',
+      okText: 'Hapus',
+      danger: true,
+    });
+    if (!ok) return;
+    UI.btnBusy(btn, true, 'Menghapus…');
+    try {
+      await ContactHTTP.del(`/api/contacts/${id}`);
+      toast('Kontak dihapus', 'ok');
+      if (editingId === id) clearForm();
+      await load();
+    } catch (err) {
+      toast(err.message, 'error');
+    } finally {
+      UI.btnBusy(btn, false);
+    }
+  }
+
+  /* =======================================================================
+   * Label
+   * ===================================================================== */
+
+  function renderLabelPanel() {
+    const el = document.getElementById('ct-labels');
+    if (!el) return;
+    if (labelsCache.length === 0) {
+      el.innerHTML = '<p class="muted">Belum ada label. Label memudahkan broadcast ke satu kelompok sekaligus.</p>';
+    } else {
+      el.innerHTML = labelsCache
+        .map(
+          (l) => `
+        <span class="lbl-chip">
+          <span class="lbl-name">${escapeHtml(l.name)}</span>
+          <span class="lbl-count">${l.contact_count}</span>
+          <button class="lbl-act" data-act="rename" data-id="${escapeHtml(l.id)}" title="Ganti nama">✎</button>
+          <button class="lbl-act" data-act="del" data-id="${escapeHtml(l.id)}" title="Hapus label">×</button>
+        </span>`
+        )
+        .join('');
+    }
+
+    el.onclick = async (e) => {
+      const btn = e.target.closest('button[data-act]');
+      if (!btn) return;
+      if (btn.dataset.act === 'rename') await renameLabel(btn.dataset.id);
+      if (btn.dataset.act === 'del') await removeLabel(btn.dataset.id);
+    };
+  }
+
+  async function addLabel(btn) {
+    if (UI.isBusy(btn)) return;
+    const name = await Modal.prompt({
+      title: 'Label baru',
+      label: 'Nama label',
+      placeholder: 'cth: Pelanggan Lama',
+    });
+    if (!name) return;
+    UI.btnBusy(btn, true, 'Menyimpan…');
+    try {
+      await ContactHTTP.post('/api/labels', { name });
+      toast(`Label "${name}" dibuat`, 'ok');
+      await load();
+    } catch (err) {
+      toast(err.message, 'error');
+    } finally {
+      UI.btnBusy(btn, false);
+    }
+  }
+
+  async function renameLabel(id) {
+    const l = labelsCache.find((x) => x.id === id);
+    if (!l) return;
+    const name = await Modal.prompt({ title: 'Ganti nama label', label: 'Nama baru', value: l.name });
+    if (!name || name === l.name) return;
+    try {
+      await ContactHTTP.put(`/api/labels/${id}`, { name });
+      toast('Label diganti', 'ok');
+      await load();
+    } catch (err) {
+      toast(err.message, 'error');
+    }
+  }
+
+  async function removeLabel(id) {
+    const l = labelsCache.find((x) => x.id === id);
+    if (!l) return;
+    const ok = await Modal.confirm({
+      title: `Hapus label "${l.name}"?`,
+      body:
+        l.contact_count > 0
+          ? `${l.contact_count} kontak akan kehilangan label ini. Kontaknya sendiri TIDAK ikut terhapus.`
+          : 'Label ini belum dipakai kontak mana pun.',
+      okText: 'Hapus label',
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      await ContactHTTP.del(`/api/labels/${id}`);
+      toast('Label dihapus', 'ok');
+      if (filterState.labelId === id) filterState.labelId = ''; // filter aktif ikut dilepas
+      await load();
+    } catch (err) {
+      toast(err.message, 'error');
+    }
+  }
+
+  /** Atur label milik SATU kontak (PUT mengganti seluruh daftar). */
+  async function manageLabels(contactId, btn) {
+    if (UI.isBusy(btn)) return;
+    const c = contactsCache.find((x) => x.id === contactId);
+    if (!c) return;
+    if (labelsCache.length === 0) {
+      toast('Belum ada label — buat dulu lewat tombol "+ Label"', 'error');
+      return;
+    }
+    UI.btnBusy(btn, true, 'Memuat…');
+    let current = [];
+    try {
+      const data = await ContactHTTP.get(`/api/contacts/${contactId}/labels`);
+      current = (data.items || []).map((l) => l.id);
+    } catch (err) {
+      toast(err.message, 'error');
+      UI.btnBusy(btn, false);
+      return;
+    }
+    UI.btnBusy(btn, false);
+
+    const picked = await Picker.checkboxes({
+      title: `Label untuk ${c.name}`,
+      body: 'Centang label yang ingin dipasang. Menghapus semua centang melepas seluruh label.',
+      items: labelsCache.map((l) => ({ value: l.id, label: l.name, sub: `${l.contact_count} kontak` })),
+      selected: current,
+      okText: 'Simpan label',
+    });
+    if (picked === null) return; // batal — beda dari [] (lepas semua)
+
+    try {
+      await ContactHTTP.put(`/api/contacts/${contactId}/labels`, { label_ids: picked });
+      toast('Label kontak diperbarui', 'ok');
+      await load();
+    } catch (err) {
+      toast(err.message, 'error');
+    }
+  }
+
+  /* =======================================================================
+   * Dipakai modul lain
+   * ===================================================================== */
+
+  /**
+   * Buka picker kontak → resolve array nomor (digit saja), atau null bila batal.
+   * Dipakai tombol "Pilih dari kontak" di form Buat Broadcast.
+   */
+  async function pickNumbers() {
+    if (!contactsEnabled()) {
+      toast('Layanan kontak dimatikan (WA_CONTACT_BASE kosong)', 'error');
+      return null;
+    }
+    try {
+      await fetchAllLabels();
+    } catch (err) {
+      toast(err.message, 'error');
+      return null;
+    }
+    return Picker.contacts({ labels: labelsCache, fetchPage: fetchContactPage, fetchAll: fetchAllContacts });
+  }
+
+  /**
+   * Simpan sekumpulan nomor sebagai kontak (dipakai "Simpan ke kontak" di History).
+   * Nomor yang SUDAH ada tidak diduplikasi — go-contact tidak punya unique index
+   * pada kolom phone, jadi tanpa pemeriksaan ini setiap klik akan menumpuk
+   * salinan nomor yang sama.
+   */
+  async function saveNumbers(numbers, { suggestedLabel } = {}) {
+    if (!contactsEnabled()) {
+      toast('Layanan kontak dimatikan (WA_CONTACT_BASE kosong)', 'error');
+      return null;
+    }
+    const wanted = [...new Set((numbers || []).map(digitsOf).filter(Boolean))];
+    if (wanted.length === 0) {
+      toast('Tidak ada nomor yang bisa disimpan', 'error');
+      return null;
+    }
+
+    let labels = [];
+    try {
+      labels = await fetchAllLabels();
+    } catch (err) {
+      toast(err.message, 'error');
+      return null;
+    }
+
+    const choice = await Picker.saveContacts({
+      count: wanted.length,
+      labels,
+      suggestedLabel,
+    });
+    if (!choice) return null;
+
+    // --- dedup terhadap kontak yang sudah ada ---
+    let existing;
+    try {
+      existing = await fetchAllContacts({}, (loaded, total) =>
+        Picker.progress(`Memeriksa duplikat… ${loaded}/${total}`)
+      );
+    } catch (err) {
+      Picker.progressDone();
+      toast(err.message, 'error');
+      return null;
+    }
+
+    const byPhone = new Map();
+    existing.items.forEach((c) => {
+      const d = digitsOf(c.phone);
+      if (d && !byPhone.has(d)) byPhone.set(d, c);
+    });
+
+    const toCreate = wanted.filter((n) => !byPhone.has(n));
+    const alreadyThere = wanted.filter((n) => byPhone.has(n));
+
+    // --- label tujuan (buat baru bila perlu) ---
+    let labelId = choice.labelId;
+    if (choice.newLabelName) {
+      try {
+        const created = await ContactHTTP.post('/api/labels', { name: choice.newLabelName });
+        labelId = created.id;
+      } catch (err) {
+        Picker.progressDone();
+        toast(`Gagal membuat label: ${err.message}`, 'error');
+        return null;
+      }
+    }
+
+    // --- buat kontak yang belum ada ---
+    const createdContacts = [];
+    const failed = [];
+    for (let i = 0; i < toCreate.length; i += 1) {
+      const phone = toCreate[i];
+      Picker.progress(`Menyimpan kontak… ${i + 1}/${toCreate.length}`);
+      try {
+        // Nama belum diketahui dari broadcast — pakai nomornya sendiri supaya
+        // kontak tetap punya nama yang wajib diisi backend; user bisa merapikan
+        // di tab Kontak.
+        const c = await ContactHTTP.post('/api/contacts', { name: phone, phone });
+        createdContacts.push(c);
+      } catch (err) {
+        failed.push({ phone, message: err.message });
+      }
+    }
+
+    // --- pasang label ---
+    let labelled = 0;
+    const labelFailed = [];
+    if (labelId) {
+      const targets = [...createdContacts.map((c) => c.id), ...alreadyThere.map((n) => byPhone.get(n).id)];
+      for (let i = 0; i < targets.length; i += 1) {
+        const id = targets[i];
+        Picker.progress(`Memasang label… ${i + 1}/${targets.length}`);
+        try {
+          // PUT mengganti SELURUH label kontak. Untuk kontak yang sudah ada,
+          // label lamanya harus dibaca dan digabung dulu — kalau langsung dikirim
+          // [labelId] saja, semua label lain milik kontak itu terhapus diam-diam.
+          const cur = await ContactHTTP.get(`/api/contacts/${id}/labels`);
+          const ids = (cur.items || []).map((l) => l.id);
+          if (ids.includes(labelId)) continue;
+          await ContactHTTP.put(`/api/contacts/${id}/labels`, { label_ids: [...ids, labelId] });
+          labelled += 1;
+        } catch (err) {
+          labelFailed.push(id);
+        }
+      }
+    }
+    Picker.progressDone();
+
+    const parts = [`${createdContacts.length} kontak baru disimpan`];
+    if (alreadyThere.length) parts.push(`${alreadyThere.length} sudah ada`);
+    if (labelled) parts.push(`${labelled} diberi label`);
+    if (existing.truncated) {
+      toast(
+        `Kontak terlalu banyak untuk diperiksa seluruhnya (dibaca ${existing.items.length}) — ` +
+          'sebagian duplikat mungkin lolos',
+        'error'
+      );
+    }
+    if (failed.length) {
+      toast(`${failed.length} nomor gagal disimpan: ${failed[0].message}`, 'error');
+    }
+    if (labelFailed.length) {
+      toast(`${labelFailed.length} kontak gagal diberi label`, 'error');
+    }
+    toast(parts.join(' · '), 'ok');
+
+    return { created: createdContacts.length, existing: alreadyThere.length, failed: failed.length };
+  }
+
+  return {
+    load,
+    save,
+    edit,
+    remove,
+    clearForm,
+    addLabel,
+    pickNumbers,
+    saveNumbers,
+    // dipakai Picker & modul lain
+    digitsOf,
+    isSendableNumber,
+  };
+})();
+
+window.Contacts = Contacts;

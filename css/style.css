@@ -929,3 +929,177 @@ blockquote {
   transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
 .fd-remove:hover { color: var(--danger); border-color: var(--danger); background: #fdf3f2; }
+
+/* ---------- Kontak ---------- */
+.label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.label-row label { margin-bottom: 0; }
+
+.ct-labels-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 26px;
+}
+.ct-labels-head h3 { margin: 0; }
+
+.ct-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 4px;
+}
+.lbl-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 8px 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  box-shadow: var(--shadow-sm);
+  font-size: 13px;
+  font-weight: 600;
+}
+.lbl-count {
+  min-width: 20px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--gold-soft);
+  color: #6b5410;
+  font-size: 11px;
+  text-align: center;
+}
+.lbl-act {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  padding: 3px 4px;
+  border-radius: 6px;
+  transition: background 0.15s, color 0.15s;
+}
+.lbl-act:hover { background: rgba(20, 32, 27, 0.07); color: var(--text); }
+
+.ct-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 22px 0 12px;
+  flex-wrap: wrap;
+}
+.ct-search { flex: 1 1 260px; margin: 0; }
+.ct-label-filter { flex: 0 0 200px; margin: 0; }
+.ct-count { margin-left: auto; font-size: 13px; }
+
+.ct-notes {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+}
+.ct-actions { white-space: nowrap; }
+.ct-warn { cursor: help; }
+
+.ct-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+/* ---------- Picker (dialog kaya) ---------- */
+/* Lebar picker WAJIB dipasang di elemen <dialog>, dan WAJIB pakai `width` —
+   bukan `max-width` saja. Dua sebab, keduanya sudah terbukti bikin salah tampil:
+     1. .modal membatasi dialog ke 440px; kalau hanya kartunya yang dilebarkan,
+        kartu meluber keluar dialog dan tepi kanannya terpotong (tombol hilang).
+     2. <dialog> defaultnya width:fit-content — menyusut mengikuti isi. `max-width`
+        cuma jadi batas atas yang tak pernah tercapai, sehingga dialog kontak
+        menyempit ke ~447px meski dibatasi 700px. */
+.modal.picker { width: min(560px, 92vw); max-width: 92vw; }
+.modal.picker-contacts { width: min(700px, 94vw); max-width: 94vw; }
+.picker-card { width: 100%; }
+
+.picker-filters {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.picker-filters input { flex: 1 1 auto; margin: 0; }
+.picker-filters select { flex: 0 0 190px; margin: 0; }
+
+.picker-bulk {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.picker-bulk .pk-status { margin-left: auto; font-size: 12px; }
+
+.picker-list {
+  max-height: min(46vh, 380px);
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  padding: 6px;
+}
+.picker-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 11px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.13s;
+}
+.picker-item:hover { background: rgba(18, 131, 110, 0.08); }
+.picker-item input { margin: 3px 0 0; flex: 0 0 auto; }
+.picker-item-body { display: flex; flex-direction: column; min-width: 0; }
+.picker-item-label { font-weight: 600; }
+.picker-item-sub { font-size: 12px; color: var(--muted); }
+.picker-empty { padding: 22px; text-align: center; margin: 0; }
+
+.pk-more {
+  display: block;
+  width: calc(100% - 12px);
+  margin: 8px 6px 4px;
+}
+.picker .modal-actions { align-items: center; }
+.pk-count { margin-right: auto; font-size: 13px; }
+
+.picker-field { margin-top: 4px; }
+.picker-field label { display: block; margin-bottom: 6px; font-weight: 600; }
+.picker-field select, .picker-field input { margin: 0 0 8px; width: 100%; }
+.ps-hint { font-size: 12px; margin: 0; }
+
+/* Overlay progres untuk operasi banyak-request (simpan massal). */
+.picker-progress {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(20, 32, 27, 0.4);
+  backdrop-filter: blur(2px);
+}
+.pp-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 24px;
+  border-radius: var(--radius);
+  background: var(--card);
+  box-shadow: var(--shadow-lg);
+  font-weight: 600;
+}

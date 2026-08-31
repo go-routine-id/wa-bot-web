@@ -12,6 +12,7 @@ const App = (() => {
     // refresh konten sesuai tab yang dibuka
     if (name === 'connection') Connection.refresh(); // render sesi langsung, bukan nunggu poll
     if (name === 'templates') Templates.load();
+    if (name === 'contacts') Contacts.load();
     if (name === 'history') History.load();
     if (name === 'create') Broadcast.loadTemplates();
   }

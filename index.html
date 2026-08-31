@@ -17,6 +17,7 @@
       <a class="tab-btn active" data-tab="connection" href="/sessions"><span class="tab-ico">🔗</span>Sesi WhatsApp</a>
       <a class="tab-btn" data-tab="create" href="/create"><span class="tab-ico">📣</span>Buat Broadcast</a>
       <a class="tab-btn" data-tab="templates" href="/templates"><span class="tab-ico">📝</span>Template</a>
+      <a class="tab-btn" data-tab="contacts" href="/contacts"><span class="tab-ico">📇</span>Kontak</a>
       <a class="tab-btn" data-tab="history" href="/history"><span class="tab-ico">🕘</span>History</a>
     </nav>
   </aside>
@@ -65,7 +66,10 @@
         <div class="cs" data-cs-for="bc-session" data-cs-placeholder="Pilih sesi pengirim" data-cs-searchable></div>
         <select id="bc-session" class="cs-native" hidden></select>
 
-        <label for="bc-recipients">Nomor tujuan (pisahkan dengan koma / baris baru)</label>
+        <div class="label-row">
+          <label for="bc-recipients">Nomor tujuan (pisahkan dengan koma / baris baru)</label>
+          <button type="button" class="btn small" onclick="Broadcast.pickFromContacts(this)">📇 Pilih dari kontak</button>
+        </div>
         <textarea id="bc-recipients" rows="4" placeholder="6281234567890, 6289876543210, ..." oninput="Broadcast.onRecipientsInput()"></textarea>
         <div id="bc-recipient-rows"></div>
 
@@ -127,6 +131,51 @@
       <div id="tpl-list"><div class="skeleton-wrap"><div class="skeleton sk-row"></div><div class="skeleton sk-row"></div><div class="skeleton sk-row"></div></div></div>
     </section>
 
+    <!-- ============ Kontak ============ -->
+    <section id="tab-contacts" class="tab-section">
+      <h2>Kontak</h2>
+      <p class="muted">Simpan nomor sekali, pakai berulang kali. Kelompokkan dengan label supaya bisa dibroadcast per kelompok.</p>
+
+      <div class="card">
+        <h3 id="ct-form-title">Tambah Kontak</h3>
+        <form id="ct-form" onsubmit="event.preventDefault(); Contacts.save();">
+          <div class="row">
+            <div class="col">
+              <label for="ct-name">Nama</label>
+              <input type="text" id="ct-name" placeholder="cth: Budi Santoso">
+            </div>
+            <div class="col">
+              <label for="ct-phone">Nomor WhatsApp</label>
+              <input type="text" id="ct-phone" placeholder="6281234567890">
+            </div>
+          </div>
+          <div class="row">
+            <div class="col">
+              <label for="ct-email">Email (opsional)</label>
+              <input type="text" id="ct-email" placeholder="budi@contoh.com">
+            </div>
+            <div class="col">
+              <label for="ct-notes">Catatan (opsional)</label>
+              <input type="text" id="ct-notes" placeholder="cth: pelanggan sejak 2024">
+            </div>
+          </div>
+          <div class="row actions">
+            <button type="submit" class="btn primary">Simpan Kontak</button>
+            <button type="button" class="btn hidden" id="ct-cancel-edit" onclick="Contacts.clearForm()">Batal</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="ct-labels-head">
+        <h3>Label</h3>
+        <button class="btn small" onclick="Contacts.addLabel(this)">+ Label</button>
+      </div>
+      <div id="ct-labels" class="ct-labels"></div>
+
+      <div id="ct-toolbar" class="ct-toolbar"></div>
+      <div id="ct-content"><div class="skeleton-wrap"><div class="skeleton sk-row"></div><div class="skeleton sk-row"></div><div class="skeleton sk-row"></div></div></div>
+    </section>
+
     <!-- ============ History ============ -->
     <section id="tab-history" class="tab-section">
       <h2>History Broadcast</h2>
@@ -144,6 +193,8 @@
   <script src="/js/connection.js"></script>
   <script src="/js/templates.js"></script>
   <script src="/js/customSelect.js"></script>
+  <script src="/js/picker.js"></script>
+  <script src="/js/contacts.js"></script>
   <script src="/js/broadcast.js"></script>
   <script src="/js/history.js"></script>
 </body>

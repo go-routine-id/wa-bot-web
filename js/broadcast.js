@@ -200,6 +200,45 @@ const Broadcast = (() => {
   }
 
   /**
+   * "Pilih dari kontak": ambil nomor dari layanan kontak lalu GABUNGKAN ke daftar
+   * yang sudah ada — bukan menimpanya. User bisa memanggilnya beberapa kali
+   * (mis. per label) dan menambah nomor manual di antaranya; menimpa akan
+   * membuang pekerjaan itu tanpa peringatan.
+   */
+  async function pickFromContacts(btn) {
+    if (UI.isBusy(btn)) return;
+    UI.btnBusy(btn, true, 'Memuat…');
+    let picked;
+    try {
+      picked = await Contacts.pickNumbers();
+    } finally {
+      UI.btnBusy(btn, false);
+    }
+    if (picked === null) return; // dibatalkan
+    if (picked.length === 0) {
+      toast('Tidak ada kontak yang dipilih', 'error');
+      return;
+    }
+
+    // Sinkronkan dulu dari textarea: user bisa saja mengetik lalu langsung menekan
+    // tombol ini sebelum debounce 300 ms onRecipientsInput sempat jalan, dan
+    // ketikan itu belum masuk recipientRows.
+    parseRowsFromTextarea();
+
+    const existing = new Set(recipientRows.map((n) => String(n).replace(/\D/g, '')));
+    const fresh = picked.filter((n) => !existing.has(n));
+    recipientRows = recipientRows.concat(fresh);
+    writeTextareaFromRows();
+    renderRecipientRows();
+
+    const dup = picked.length - fresh.length;
+    toast(
+      `${fresh.length} nomor ditambahkan` + (dup ? ` · ${dup} sudah ada di daftar` : ''),
+      fresh.length ? 'ok' : 'info'
+    );
+  }
+
+  /**
    * Isi form dari broadcast lama ("Broadcast ulang"). Broadcast asli TIDAK
    * disentuh — ini hanya menyalin isinya ke form agar bisa diedit lalu dikirim
    * sebagai broadcast baru.
@@ -341,6 +380,7 @@ const Broadcast = (() => {
     editRecipientRow,
     removeRecipientRow,
     clearRecipientRows,
+    pickFromContacts,
     prefillFrom,
   };
 })();

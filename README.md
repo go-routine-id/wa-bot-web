@@ -25,7 +25,18 @@ Setelah itu:
    ```bash
    CORS_ORIGINS=http://localhost:5173
    ```
-4. Buka `http://localhost:5173` (tiap menu punya URL sendiri — `http://localhost:5173/sessions`, `/create`, `/templates`, `/history`; back/forward browser & deep-link berfungsi). Detail broadcast punya halaman sendiri: `/history/:id` (mis. `/history/13`). Mulai dari tab **Sesi WhatsApp** → tambah sesi & scan QR.
+4. **(Opsional) Aktifkan fitur Kontak** — butuh layanan terpisah [go-contact](https://github.com/go-routine-id/go-contact).
+   Jalankan go-contact (default `http://localhost:7281`) dengan origin ini diizinkan di `.env`-nya:
+   ```bash
+   CORS_ORIGINS=http://localhost:5173
+   ```
+   Lalu set base URL-nya di `config.js` (`window.WA_CONTACT_BASE`), atau per-browser:
+   ```js
+   localStorage.setItem('WA_CONTACT_BASE', 'http://localhost:7281')
+   localStorage.setItem('WA_CONTACT_BASE', '')   // matikan fitur Kontak
+   ```
+   Dikosongkan = tab **Kontak** menjelaskan bahwa fiturnya mati, dan fitur broadcast tetap jalan normal.
+5. Buka `http://localhost:5173` (tiap menu punya URL sendiri — `http://localhost:5173/sessions`, `/create`, `/templates`, `/contacts`, `/history`; back/forward browser & deep-link berfungsi). Detail broadcast punya halaman sendiri: `/history/:id` (mis. `/history/13`). Mulai dari tab **Sesi WhatsApp** → tambah sesi & scan QR.
 
 ## Memakai
 
@@ -56,22 +67,37 @@ Buat template teks (opsional + 1 gambar) untuk dipakai berulang di broadcast. Te
 - Daftar broadcast + status per recipient: `menunggu` / `terkirim` / `gagal` / `dibatalkan`, plus kolom **Sesi** (pengirim broadcast ini).
 - **Detail broadcast** dibuka di halaman terpisah `/history/:id` (klik **Detail** di baris list, atau buka URL langsung) — menampilkan sesi pengirim, progress, isi pesan, dan tabel recipient. Tombol **← Kembali ke list** atau back browser kembali ke `/history`.
 - Tombol **"Kirim ulang yang gagal"** → buat broadcast baru HANYA dari nomor yang gagal (nomor yang sudah terkirim tidak dikirim lagi), memakai sesi pengirim yang sama.
+- Tombol **"📇 Simpan ke kontak"** → simpan semua nomor broadcast ini ke layanan kontak, dengan pilihan label (usulan: `Broadcast #<id>`). Nomor yang sudah tersimpan **tidak diduplikasi**, dan label lama kontak tidak terhapus — label baru ditambahkan.
+
+### 5. Kontak (tab "Kontak")
+
+Butuh layanan [go-contact](https://github.com/go-routine-id/go-contact) — lihat langkah 4 di Quickstart.
+
+- **CRUD kontak**: nama, nomor, email, catatan. Nomor yang bukan format WhatsApp valid (8–15 digit) ditandai ⚠️.
+- **Label** sebagai kelompok: buat, ganti nama, hapus. Menghapus label TIDAK menghapus kontaknya.
+- Tombol **Label** per baris mengatur label satu kontak sekaligus (centang = pasang, hilangkan semua centang = lepas semua).
+- **Pencarian** (nama/nomor) dan **filter per label** — filter inilah yang dipakai untuk broadcast ke satu kelompok.
+- Di form **Buat Broadcast**, tombol **"📇 Pilih dari kontak"** membuka pemilih dengan pencarian, filter label, dan **"Pilih semua hasil"**. Nomor terpilih **digabungkan** ke daftar yang sudah ada (tidak menimpa) dan duplikat dibuang otomatis.
+
+> Kontak dimuat 100 per permintaan karena itu batas layanan; "Pilih semua hasil" mengambil seluruh halaman, bukan hanya yang tampil.
 
 ## Struktur
 
 ```
-config.js       # base URL API (window.WA_API_BASE)
+config.js       # base URL API (window.WA_API_BASE) + layanan kontak (window.WA_CONTACT_BASE)
 server.js       # static file server minimal (tanpa dependency)
 index.html      # entry UI
 css/style.css
 js/
   api.js        # fetch wrapper (prefix base URL)
-  router.js     # URL routing (History API): /sessions, /create, /templates, /history
+  router.js     # URL routing (History API): /sessions, /create, /templates, /contacts, /history
   app.js        # init tab + render aktif
   connection.js # session manager: list kartu sesi + QR + countdown + tambah/rename/hapus/logout/rescan
   templates.js  # CRUD template
   broadcast.js  # buat broadcast (dropdown sesi pengirim + submit sessionId)
-  history.js    # history (kolom sesi) + halaman detail /history/:id + retry gagal
+  history.js    # history (kolom sesi) + halaman detail /history/:id + retry gagal + simpan ke kontak
+  contacts.js   # tab Kontak: CRUD kontak & label — memanggil go-contact (base URL sendiri)
+  picker.js     # dialog kaya: pilih kontak, centang label, overlay progres
 ```
 
 ## Troubleshooting
@@ -83,3 +109,5 @@ js/
 | Dropdown sesi pengirim kosong | Pastikan minimal satu sesi berstatus **terhubung** di tab Sesi WhatsApp |
 | Broadcast semua gagal | Cek format nomor dan pastikan sesi pengirim terhubung (belum dihapus) |
 | Muncul `auth_failure` | Sesi di-logout dari WhatsApp — klik rescan lalu scan QR baru |
+| Tab Kontak bilang "fitur dimatikan" | `WA_CONTACT_BASE` kosong — isi lewat `config.js` atau `localStorage` |
+| Tab Kontak: "tidak bisa menghubungi layanan kontak" | go-contact tidak jalan, atau origin ini belum ada di `CORS_ORIGINS` go-contact |

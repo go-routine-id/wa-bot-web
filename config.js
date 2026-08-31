@@ -32,3 +32,39 @@ window.WA_API_BASE = (() => {
 function apiBase() {
   return (window.WA_API_BASE || '').replace(/\/+$/, '');
 }
+
+/**
+ * window.WA_CONTACT_BASE = base URL layanan kontak (go-contact).
+ *
+ * Layanan TERPISAH dari wa-bot-service — beda repo, beda port, beda proses.
+ * Frontend memanggilnya langsung dari browser, jadi go-contact harus mengizinkan
+ * origin ini lewat env CORS_ORIGINS miliknya; kalau tidak, semua panggilan
+ * kontak diblokir browser sementara fitur broadcast tetap jalan normal.
+ *
+ * Timpa per-browser lewat localStorage (berkas ini dilacak git):
+ *     localStorage.setItem('WA_CONTACT_BASE', 'https://kontak.contoh.com')
+ *     localStorage.setItem('WA_CONTACT_BASE', '')   // matikan fitur kontak
+ *     localStorage.removeItem('WA_CONTACT_BASE')    // kembali ke default
+ *
+ * Dikosongkan = fitur kontak dianggap tidak tersedia dan tab Kontak
+ * menampilkan penjelasan, bukan error jaringan yang membingungkan.
+ */
+window.WA_CONTACT_BASE = (() => {
+  try {
+    const override = localStorage.getItem('WA_CONTACT_BASE');
+    if (override !== null) return override; // string kosong = fitur dimatikan (disengaja)
+  } catch (_) {
+    // localStorage bisa diblokir (mode privat) → pakai default
+  }
+  return 'http://localhost:7281';
+})();
+
+/** Base URL layanan kontak, trailing slash dibuang. '' = fitur dimatikan. */
+function contactBase() {
+  return (window.WA_CONTACT_BASE || '').replace(/\/+$/, '');
+}
+
+/** Fitur kontak aktif hanya bila base URL-nya diisi. */
+function contactsEnabled() {
+  return contactBase() !== '';
+}
