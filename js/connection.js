@@ -22,6 +22,18 @@ const Connection = (() => {
     }
   }
 
+  /**
+   * Waktu kedaluwarsa yang dihitung mundur untuk sebuah sesi, atau 0 bila tidak ada.
+   * Hanya expiry yang masih di MASA DEPAN yang dipakai: expiry yang sudah lewat
+   * membuat tick tiap detik menembakkan refresh() terus-menerus (polling 1x/detik)
+   * sampai backend memancarkan kode baru — cukup biarkan polling normal 2.5 detik.
+   */
+  function countdownTarget(s) {
+    if (s.status === 'qr') return s.qrExpiresAt || 0;
+    if (s.status === 'pairing_code') return s.pairingCodeExpiresAt || 0;
+    return 0;
+  }
+
   function stopCountdown() {
     if (countdown) {
       clearInterval(countdown);
@@ -35,20 +47,14 @@ const Connection = (() => {
   function startCountdown() {
     if (countdown) return;
     countdown = setInterval(() => {
-      const ticking = sessionsCache.filter(
-        (s) =>
-          (s.status === 'qr' && s.qrExpiresAt) ||
-          (s.status === 'pairing_code' && s.pairingCodeExpiresAt)
-      );
+      const ticking = sessionsCache.filter((s) => countdownTarget(s) > Date.now());
       if (ticking.length === 0) {
         stopCountdown();
         return;
       }
       let anyExpired = false;
       ticking.forEach((s) => {
-        const expiresAt =
-          s.status === 'pairing_code' ? s.pairingCodeExpiresAt : s.qrExpiresAt;
-        const remain = Math.max(0, Math.round((expiresAt - Date.now()) / 1000));
+        const remain = Math.max(0, Math.round((countdownTarget(s) - Date.now()) / 1000));
         const num = document.getElementById(`qr-countdown-${s.id}`);
         if (num) num.textContent = remain;
         if (remain <= 0) anyExpired = true;
@@ -75,11 +81,7 @@ const Connection = (() => {
     }
 
     const cards = sessionsCache.map(renderCard).join('');
-    const hasCountdown = sessionsCache.some(
-      (s) =>
-        (s.status === 'qr' && s.qrExpiresAt) ||
-        (s.status === 'pairing_code' && s.pairingCodeExpiresAt)
-    );
+    const hasCountdown = sessionsCache.some((s) => countdownTarget(s) > Date.now());
     if (hasCountdown) startCountdown();
 
     el.innerHTML = `<div class="session-list">${cards}</div>`;
@@ -125,8 +127,10 @@ const Connection = (() => {
 
     if (s.hasPairingCode) {
       const remain = Math.max(0, Math.round(((s.pairingCodeExpiresAt || 0) - Date.now()) / 1000));
-      const code = escapeHtml(s.pairingCode || '');
-      const pretty = code.length === 8 ? `${code.slice(0, 4)}-${code.slice(4)}` : code;
+      // Potong kode MENTAH dulu, baru escape. Kalau di-escape lebih dulu, karakter
+      // seperti & berubah jadi entity (&amp;) dan slice bisa membelahnya di tengah.
+      const raw = s.pairingCode || '';
+      const pretty = escapeHtml(raw.length === 8 ? `${raw.slice(0, 4)}-${raw.slice(4)}` : raw);
       return `
         <div class="conn-box session-card">
           <div class="session-head"><strong><span class="avatar">${name.charAt(0).toUpperCase()}</span>${name}</strong> ${badge}</div>
