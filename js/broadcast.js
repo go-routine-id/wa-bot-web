@@ -3,6 +3,24 @@
 const Broadcast = (() => {
   let templatesCache = [];
 
+  // Sesi yang ingin dipilih (dipasang "Broadcast ulang"). loadSessions() membangun
+  // ulang <select> dan itu ME-RESET value ke opsi pertama — dan loadSessions
+  // dipanggil lagi oleh loadTemplates() setiap tab Create dibuka, yaitu SETELAH
+  // prefillFrom selesai. Tanpa penanda ini, sesi pengirim yang disalin diam-diam
+  // berganti ke sesi lain. Penanda bertahan sampai user memilih sendiri atau
+  // broadcast terkirim.
+  let desiredSessionId = null;
+  let sessionChangeHooked = false;
+
+  /** Sekali pasang: pilihan manual user membatalkan sesi bawaan dari "Broadcast ulang". */
+  function hookSessionChange(sel) {
+    if (sessionChangeHooked || !sel) return;
+    sessionChangeHooked = true;
+    sel.addEventListener('change', () => {
+      desiredSessionId = null;
+    });
+  }
+
   function toggleSource() {
     const source = document.querySelector('input[name="bc-source"]:checked').value;
     document.getElementById('bc-template-wrap').classList.toggle('hidden', source !== 'template');
@@ -59,6 +77,14 @@ const Broadcast = (() => {
             `<option value="${escapeHtml(s.id)}" data-status="connecting" disabled>${escapeHtml(s.name)}</option>`
         )
         .join('');
+      hookSessionChange(sel);
+      // Pulihkan sesi bawaan "Broadcast ulang" setelah <select> dibangun ulang.
+      // Hanya bila opsinya benar-benar ada & aktif — sesi asal bisa saja sudah
+      // dihapus atau sedang tidak terhubung.
+      if (desiredSessionId) {
+        const opt = [...sel.options].find((o) => o.value === desiredSessionId && !o.disabled);
+        if (opt) sel.value = desiredSessionId;
+      }
       CustomSelect.refreshAll(); // custom dropdown ikut render ulang
     } catch (err) {
       toast(err.message, 'error');
@@ -186,13 +212,11 @@ const Broadcast = (() => {
     writeTextareaFromRows();
     renderRecipientRows();
 
-    // Sesi pengirim: opsi diisi async, jadi tunggu dulu baru pilih sesi asal.
+    // Sesi pengirim ditandai, bukan di-set langsung: loadSessions() akan dipanggil
+    // lagi oleh loadTemplates() saat tab Create dibuka dan itu membangun ulang
+    // <select>. Penandanya dihormati loadSessions setiap kali membangun ulang.
+    desiredSessionId = sessionId || null;
     await loadSessions();
-    const sel = document.getElementById('bc-session');
-    if (sessionId && sel && [...sel.options].some((o) => o.value === sessionId)) {
-      sel.value = sessionId;
-      if (window.CustomSelect) CustomSelect.refreshAll();
-    }
   }
 
   function setSpeedType(type) {
@@ -285,6 +309,7 @@ const Broadcast = (() => {
       const created = await API.post('/api/broadcasts', body);
       toast(`Broadcast #${created.id} dibuat — status: ${created.status}`, 'ok');
       // Reset form
+      desiredSessionId = null; // sesi bawaan "Broadcast ulang" selesai dipakai
       clearRecipientRows(); // ikut mengosongkan textarea + daftar baris
       document.getElementById('bc-message').value = '';
       document.getElementById('bc-image').value = '';
