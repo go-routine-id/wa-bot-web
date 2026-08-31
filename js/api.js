@@ -2,8 +2,23 @@
 
 /** Fetch wrapper + helper kecil. Diekspos ke window supaya bisa dipakai semua modul. */
 const API = (() => {
+  /**
+   * API key opsional (backend: env API_KEY). Disimpan per-browser lewat localStorage
+   * supaya tidak perlu menaruh rahasia di berkas yang dilacak git:
+   *     localStorage.setItem('WA_API_KEY', '<kunci>')
+   */
+  function apiKey() {
+    try {
+      return localStorage.getItem('WA_API_KEY') || '';
+    } catch (_) {
+      return ''; // localStorage bisa diblokir (mode privat)
+    }
+  }
+
   async function request(method, url, body, isMultipart = false) {
     const opts = { method, headers: {} };
+    const key = apiKey();
+    if (key) opts.headers['X-API-Key'] = key;
     if (body !== undefined) {
       if (isMultipart) {
         opts.body = body;
@@ -25,6 +40,7 @@ const API = (() => {
     patch: (url, body) => request('PATCH', url, body),
     del: (url, body) => request('DELETE', url, body),
     upload: (url, formData) => request('POST', url, formData, true),
+    apiKey,
   };
 })();
 

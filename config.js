@@ -13,6 +13,10 @@
  *     localStorage.setItem('WA_API_BASE', 'https://api.contoh.com')
  *     localStorage.setItem('WA_API_BASE', '')   // paksa same-origin
  *     localStorage.removeItem('WA_API_BASE')    // kembali ke default di bawah
+ *
+ * Bila backend dijalankan dengan env API_KEY, set juga kuncinya di browser ini:
+ *     localStorage.setItem('WA_API_KEY', '<kunci yang sama dengan env API_KEY>')
+ * Kunci sengaja TIDAK ditaruh di berkas ini karena berkas ini dilacak git.
  */
 window.WA_API_BASE = (() => {
   try {
