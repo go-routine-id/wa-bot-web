@@ -77,6 +77,7 @@ Butuh layanan [go-contact](https://github.com/go-routine-id/go-contact) — liha
 - **Mengubah kontak punya halaman sendiri**: `/contacts/:id` (klik **Edit** di baris, atau buka URL-nya langsung). Halaman ini memuat form lengkap, label kontak, tombol hapus, dan waktu dibuat/diubah. Back/forward browser & deep-link berfungsi, sama seperti detail broadcast. Mengosongkan sebuah kolom di sini benar-benar menghapus isinya.
 - **Label** sebagai kelompok: buat, ganti nama, hapus. Menghapus label TIDAK menghapus kontaknya.
 - **⭐ Favorit** (seperti *starred* di Google Contacts): klik bintang di baris kontak atau di halaman detailnya. Tombol **Favorit** di toolbar menyaring daftar ke kontak berbintang saja.
+- **📥 Impor CSV** — muat banyak kontak sekaligus dari berkas CSV. Lihat format di bawah.
 - **Sematkan label** dengan bintang di chip-nya. Label tersemat naik ke urutan atas dan muncul sebagai **chip pintasan** di pemilih kontak saat broadcast — jadi kelompok yang sering dipakai tinggal satu klik.
 - Tombol **Label** per baris mengatur label satu kontak sekaligus (centang = pasang, hilangkan semua centang = lepas semua).
 - **Pencarian** (nama/nomor) dan **filter per label** — filter inilah yang dipakai untuk broadcast ke satu kelompok.
@@ -84,6 +85,36 @@ Butuh layanan [go-contact](https://github.com/go-routine-id/go-contact) — liha
 - Di pemilih itu ada baris **Pintasan**: `⭐ Favorit` plus setiap label yang disematkan. Satu klik menyaring daftar, lalu **"Pilih semua hasil"** mengambil seluruhnya — inilah jalur "broadcast ke kelompok yang sering dipakai".
 
 > `⭐ Favorit` bukan label sungguhan di database, melainkan filter `?favorite=true`. Jadi kontak berbintang tidak perlu ikut jadi anggota label mana pun.
+
+#### Format CSV impor
+
+Baris pertama wajib berisi nama kolom. Urutan kolom bebas, huruf besar/kecil bebas.
+
+```csv
+no,name,label
+628123456789,Budi Santoso,Pelanggan;VIP
+628987654321,"Santoso, Siti",Reseller
+628111222333,Andi,
+```
+
+| Kolom | Wajib | Keterangan |
+|---|---|---|
+| `no` | ya | Nomor telepon **8–15 digit dengan kode negara**. Spasi, `+`, dan `-` boleh — akan dibersihkan (`+62 812-3456-7890` diterima). |
+| `name` | ya | Nama kontak. Kalau mengandung koma, apit dengan tanda kutip. |
+| `label` | tidak | Beberapa label dipisah titik-koma `;`. Koma tidak bisa dipakai karena sudah jadi pemisah kolom CSV. Label yang belum ada dibuat otomatis. |
+
+Alias yang juga dikenali: `nomor`/`phone` untuk `no`, `nama` untuk `name`, dan `label[]` untuk `label`.
+
+Sebelum menulis apa pun, layar **pratinjau** menandai tiap baris:
+
+| Status | Artinya |
+|---|---|
+| **baru** | akan dibuat sebagai kontak baru |
+| **sudah ada** | nomornya sudah tersimpan — kontak tidak diduplikasi, **nama lama dipertahankan**, label dari CSV ditambahkan ke label yang sudah ada |
+| **ganda** | nomor yang sama muncul lebih dari sekali di dalam berkas; hanya kemunculan pertama diproses |
+| **tidak valid** | dilewati, dengan alasannya (mis. `08…` yang belum berkode negara) |
+
+> Karena nomor yang sudah ada dilewati, **mengimpor berkas yang sama dua kali aman** — tidak ada yang tergandakan. Kalau impor terputus di tengah, cukup jalankan lagi.
 
 > Kontak dimuat 100 per permintaan karena itu batas layanan; "Pilih semua hasil" mengambil seluruh halaman, bukan hanya yang tampil.
 
@@ -104,6 +135,7 @@ js/
   history.js    # history (kolom sesi) + halaman detail /history/:id + retry gagal + simpan ke kontak
   contacts.js   # tab Kontak: daftar + halaman /contacts/:id, CRUD kontak & label (go-contact)
   picker.js     # dialog kaya: pilih kontak, centang label, overlay progres
+  import.js     # impor CSV: parser RFC 4180, pratinjau per baris, eksekusi
 ```
 
 ## Troubleshooting

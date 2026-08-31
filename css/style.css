@@ -1174,3 +1174,71 @@ blockquote {
   border-color: var(--primary);
   color: #fff;
 }
+
+/* ---------- Impor CSV ---------- */
+.modal.picker-import { width: min(860px, 95vw); max-width: 95vw; }
+.imp-sample {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 12.5px;
+  overflow-x: auto;
+  margin: 8px 0 12px;
+}
+.imp-rules { margin: 0 0 14px; padding-left: 20px; font-size: 13px; }
+.imp-rules li { margin-bottom: 3px; }
+.imp-rules code { background: var(--bg); padding: 1px 5px; border-radius: 5px; }
+.imp-error { color: var(--danger); font-weight: 600; }
+.imp-loading { padding: 20px 0; }
+
+.imp-counts { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.imp-stat {
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  font-size: 12px;
+}
+.imp-stat.new { border-color: #b7dfc9; background: #f0fbf4; }
+.imp-stat.existing { border-color: var(--gold-soft); background: #fffdf3; }
+.imp-stat.invalid { border-color: #f0c4c0; background: #fdf3f2; }
+
+.imp-newlabels { font-size: 12px; margin: 0 0 10px; }
+.imp-lbl {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--gold-soft);
+  color: #6b5410;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.imp-table-wrap {
+  max-height: min(44vh, 360px);
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.imp-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.imp-table th, .imp-table td { padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+.imp-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.imp-table tbody tr:last-child td { border-bottom: 0; }
+.imp-line { color: var(--muted); }
+.imp-reason { color: var(--muted); }
+.imp-row.invalid, .imp-row.dupe { background: #fdf6f5; }
+.imp-badge { padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.imp-badge.new { background: #dcfce7; color: #14532d; }
+.imp-badge.existing { background: var(--gold-soft); color: #6b5410; }
+.imp-badge.invalid { background: #fee2e2; color: #7f1d1d; }
+.imp-badge.dupe { background: #ede9fe; color: #4c1d95; }
+.imp-more { font-size: 12px; margin: 8px 0 0; }
+.imp-summary { margin-right: auto; font-size: 13px; }

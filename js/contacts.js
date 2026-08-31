@@ -972,6 +972,11 @@ const Contacts = (() => {
     // dipakai Picker & modul lain
     digitsOf,
     isSendableNumber,
+    // dipakai ContactImport: klien HTTP & pengambil data lengkap dipakai ulang
+    // supaya impor tidak menduplikasi logika paginasi & penanganan error.
+    http: ContactHTTP,
+    fetchAllContacts,
+    fetchAllLabels,
   };
 })();
 
