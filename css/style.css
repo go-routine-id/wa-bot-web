@@ -1112,3 +1112,65 @@ blockquote {
 .ctd-meta { font-size: 12px; margin-top: 18px; }
 #ct-detail .row.actions { margin-top: 18px; }
 #ct-detail small.rcp-warn { display: block; margin-top: 6px; }
+
+/* ---------- Favorit: bintang kontak & sematan label ---------- */
+.star-btn {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 4px 6px;
+  border-radius: 8px;
+  color: #c3c8c5;                     /* abu: belum difavoritkan */
+  transition: color 0.15s, background 0.15s, transform 0.15s var(--ease-spring);
+}
+.star-btn:hover { background: rgba(201, 162, 39, 0.14); color: var(--gold); }
+.star-btn.on { color: var(--gold); }
+.star-btn.on:hover { transform: scale(1.12); }
+.star-btn:disabled { cursor: default; opacity: 0.6; }
+.star-btn.lg { font-size: 22px; padding: 2px 6px; }
+.ct-star { width: 34px; padding-right: 0; }
+.star-inline { color: var(--gold); }
+
+/* Tombol filter favorit di toolbar */
+.star-toggle.on {
+  border-color: var(--gold);
+  background: rgba(201, 162, 39, 0.14);
+  color: #6b5410;
+}
+
+/* Chip label yang disematkan */
+.lbl-chip.pinned {
+  border-color: var(--gold-soft);
+  background: linear-gradient(180deg, #fffdf5, var(--card));
+}
+.lbl-chip .star-btn { padding: 2px 3px; font-size: 13px; }
+
+/* Pintasan di pemilih kontak */
+.pk-shortcuts {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.pk-shortcut-label { font-size: 12px; }
+.pk-shortcut-hint { font-size: 12px; font-style: italic; }
+.chip {
+  border: 1px solid var(--border);
+  background: var(--card);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.chip:hover { border-color: var(--primary-2); }
+.chip.on {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}

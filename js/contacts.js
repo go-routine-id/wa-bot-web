@@ -72,7 +72,7 @@ const Contacts = (() => {
   let contactsCache = []; // kontak yang sedang tampil di tab
   let labelsCache = [];
   let pageState = { page: 1, totalPages: 1, total: 0 };
-  let filterState = { search: '', labelId: '' };
+  let filterState = { search: '', labelId: '', favoriteOnly: false };
   let searchTimer = null;
   // Kontak yang sedang dibuka di halaman detail (/contacts/:id), beserta labelnya.
   let detailContact = null;
@@ -101,11 +101,24 @@ const Contacts = (() => {
    * Pengambilan data
    * ===================================================================== */
 
-  /** Satu halaman kontak. */
-  async function fetchContactPage({ page = 1, pageSize = SERVER_MAX_PAGE_SIZE, search, labelId }) {
+  /**
+   * Satu halaman kontak.
+   *
+   * favoriteOnly dikirim sebagai ?favorite=true HANYA bila benar-benar diminta.
+   * Backend menolak nilai kosong/cacat dengan 400 (disengaja: "?favorite=" yang
+   * diam-diam berarti "semua kontak" pernah jadi jalan menuju broadcast ke
+   * seluruh daftar), jadi jangan pernah mengirim parameter ini dalam keadaan kosong.
+   */
+  async function fetchContactPage({ page = 1, pageSize = SERVER_MAX_PAGE_SIZE, search, labelId, favoriteOnly }) {
     const path =
       '/api/contacts' +
-      qs({ page, 'page-size': pageSize, search: search || undefined, 'label-id': labelId || undefined });
+      qs({
+        page,
+        'page-size': pageSize,
+        search: search || undefined,
+        'label-id': labelId || undefined,
+        favorite: favoriteOnly ? 'true' : undefined,
+      });
     const data = await ContactHTTP.get(path);
     return { items: data.items || [], pagination: data.pagination || null };
   }
@@ -120,14 +133,14 @@ const Contacts = (() => {
    *
    * onProgress(loaded, total) dipanggil tiap halaman agar UI tidak terlihat menggantung.
    */
-  async function fetchAllContacts({ search, labelId } = {}, onProgress) {
+  async function fetchAllContacts({ search, labelId, favoriteOnly } = {}, onProgress) {
     const all = [];
     let page = 1;
     let total = 0;
     let truncated = false;
 
     for (;;) {
-      const { items, pagination } = await fetchContactPage({ page, search, labelId });
+      const { items, pagination } = await fetchContactPage({ page, search, labelId, favoriteOnly });
       all.push(...items);
       total = pagination ? pagination.total : all.length;
       if (onProgress) onProgress(all.length, total);
@@ -146,8 +159,11 @@ const Contacts = (() => {
     const all = [];
     let page = 1;
     for (;;) {
+      // TANPA order-by: urutan bawaan server sudah "yang disematkan dulu, lalu
+      // abjad". Mengirim order-by=name justru menang atas is_favorite dan
+      // membuat label yang disematkan tidak naik ke atas sama sekali.
       const data = await ContactHTTP.get(
-        '/api/labels' + qs({ page, 'page-size': SERVER_MAX_PAGE_SIZE, 'order-by': 'name' })
+        '/api/labels' + qs({ page, 'page-size': SERVER_MAX_PAGE_SIZE })
       );
       all.push(...(data.items || []));
       const pg = data.pagination;
@@ -205,6 +221,7 @@ const Contacts = (() => {
         pageSize: 20,
         search: filterState.search,
         labelId: filterState.labelId,
+        favoriteOnly: filterState.favoriteOnly,
       });
       contactsCache = items;
       pageState = {
@@ -235,6 +252,8 @@ const Contacts = (() => {
       .join('');
     el.innerHTML = `
       <input type="text" id="ct-search" class="ct-search" placeholder="Cari nama, nomor, email…" value="${escapeHtml(filterState.search)}">
+      <button type="button" id="ct-fav-filter" class="btn small star-toggle${filterState.favoriteOnly ? ' on' : ''}"
+              title="Tampilkan hanya kontak berbintang">${filterState.favoriteOnly ? '★' : '☆'} Favorit</button>
       <select id="ct-label-filter" class="ct-label-filter">
         <option value="">Semua label</option>
         ${opts}
@@ -252,6 +271,11 @@ const Contacts = (() => {
     });
     document.getElementById('ct-label-filter').addEventListener('change', (e) => {
       filterState.labelId = e.target.value;
+      pageState.page = 1;
+      load();
+    });
+    document.getElementById('ct-fav-filter').addEventListener('click', () => {
+      filterState.favoriteOnly = !filterState.favoriteOnly;
       pageState.page = 1;
       load();
     });
@@ -281,6 +305,10 @@ const Contacts = (() => {
       .map(
         (c) => `
       <tr>
+        <td class="ct-star">
+          <button class="star-btn${c.is_favorite ? ' on' : ''}" data-act="star" data-id="${escapeHtml(c.id)}"
+                  title="${c.is_favorite ? 'Lepas dari favorit' : 'Jadikan favorit'}">${c.is_favorite ? '★' : '☆'}</button>
+        </td>
         <td>${escapeHtml(c.name)}</td>
         <td>${escapeHtml(c.phone)}${isSendableNumber(c.phone) ? '' : ' <span class="ct-warn" title="Bukan format nomor WhatsApp yang valid (8–15 digit)">⚠️</span>'}</td>
         <td>${escapeHtml(c.email || '—')}</td>
@@ -306,7 +334,7 @@ const Contacts = (() => {
 
     el.innerHTML = `
       <table>
-        <thead><tr><th>Nama</th><th>Nomor</th><th>Email</th><th>Catatan</th><th>Diupdate</th><th>Aksi</th></tr></thead>
+        <thead><tr><th></th><th>Nama</th><th>Nomor</th><th>Email</th><th>Catatan</th><th>Diupdate</th><th>Aksi</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
       ${pager}`;
@@ -327,6 +355,8 @@ const Contacts = (() => {
         remove(btn.dataset.id, btn);
       } else if (act === 'labels') {
         manageLabels(btn.dataset.id, btn);
+      } else if (act === 'star') {
+        toggleStar(btn.dataset.id, btn);
       }
     };
   }
@@ -423,7 +453,9 @@ const Contacts = (() => {
       el.innerHTML = labelsCache
         .map(
           (l) => `
-        <span class="lbl-chip">
+        <span class="lbl-chip${l.is_favorite ? ' pinned' : ''}">
+          <button class="lbl-act star-btn${l.is_favorite ? ' on' : ''}" data-act="pin" data-id="${escapeHtml(l.id)}"
+                  title="${l.is_favorite ? 'Lepas sematan' : 'Sematkan — muncul di atas & jadi pintasan saat broadcast'}">${l.is_favorite ? '★' : '☆'}</button>
           <span class="lbl-name">${escapeHtml(l.name)}</span>
           <span class="lbl-count">${l.contact_count}</span>
           <button class="lbl-act" data-act="rename" data-id="${escapeHtml(l.id)}" title="Ganti nama">✎</button>
@@ -438,6 +470,7 @@ const Contacts = (() => {
       if (!btn) return;
       if (btn.dataset.act === 'rename') await renameLabel(btn.dataset.id);
       if (btn.dataset.act === 'del') await removeLabel(btn.dataset.id);
+      if (btn.dataset.act === 'pin') await togglePin(btn.dataset.id, btn);
     };
   }
 
@@ -495,6 +528,56 @@ const Contacts = (() => {
       await load();
     } catch (err) {
       toast(err.message, 'error');
+    }
+  }
+
+
+  /**
+   * Bintangi / lepas bintang satu kontak.
+   *
+   * Hanya `is_favorite` yang dikirim — sengaja. Ikut mengirim nama/nomor akan
+   * menimpanya dengan salinan cache yang bisa sudah basi bila kontak yang sama
+   * diedit dari tab lain.
+   */
+  async function toggleStar(id, btn) {
+    if (UI.isBusy(btn)) return;
+    const c = contactsCache.find((x) => x.id === id);
+    if (!c) return;
+    const next = !c.is_favorite;
+
+    // Optimistis: bintang harus terasa seketika. Dikembalikan bila server menolak.
+    btn.classList.toggle('on', next);
+    btn.textContent = next ? '★' : '☆';
+    btn.disabled = true;
+    try {
+      await ContactHTTP.put(`/api/contacts/${id}`, { is_favorite: next });
+      c.is_favorite = next;
+      // Saat filter favorit aktif, kontak yang dilepas harus benar-benar keluar
+      // dari daftar — kalau hanya bintangnya yang berubah, daftar jadi bohong.
+      if (filterState.favoriteOnly) await load();
+    } catch (err) {
+      btn.classList.toggle('on', !next);
+      btn.textContent = next ? '☆' : '★';
+      toast(err.message, 'error');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  /** Sematkan / lepas sematan label. Label tersemat naik ke atas & jadi pintasan broadcast. */
+  async function togglePin(id, btn) {
+    if (UI.isBusy(btn)) return;
+    const l = labelsCache.find((x) => x.id === id);
+    if (!l) return;
+    btn.disabled = true;
+    try {
+      // Hanya is_favorite: mengirim ulang `name` akan menimpa rename yang mungkin
+      // baru dilakukan orang lain dengan nilai lama dari cache.
+      await ContactHTTP.put(`/api/labels/${id}`, { is_favorite: !l.is_favorite });
+      await load(); // urutan label ikut berubah → render ulang panelnya
+    } catch (err) {
+      toast(err.message, 'error');
+      btn.disabled = false;
     }
   }
 
@@ -736,6 +819,8 @@ const Contacts = (() => {
     el.innerHTML = `
       <div class="detail-head">
         <button class="btn small" onclick="Contacts.backToList()">← Kembali ke daftar</button>
+        <button class="star-btn lg${c.is_favorite ? ' on' : ''}" onclick="Contacts.toggleDetailStar(this)"
+                title="${c.is_favorite ? 'Lepas dari favorit' : 'Jadikan favorit'}">${c.is_favorite ? '★' : '☆'}</button>
         <h3>${escapeHtml(c.name)}</h3>
       </div>
 
@@ -784,6 +869,22 @@ const Contacts = (() => {
 
   function backToList() {
     Router.navigate('contacts'); // URL kembali ke /contacts
+  }
+
+  /** Bintang di halaman detail. Terpisah dari toggleStar karena sumber datanya
+   *  detailContact, bukan contactsCache — di halaman ini daftar tidak dimuat. */
+  async function toggleDetailStar(btn) {
+    if (!detailContact || btn.disabled) return;
+    const next = !detailContact.is_favorite;
+    btn.disabled = true;
+    try {
+      detailContact = await ContactHTTP.put(`/api/contacts/${detailContact.id}`, { is_favorite: next });
+      renderDetail();
+      toast(next ? 'Ditambahkan ke favorit' : 'Dilepas dari favorit', 'ok');
+    } catch (err) {
+      toast(err.message, 'error');
+      btn.disabled = false;
+    }
   }
 
   async function saveDetail() {
@@ -860,6 +961,9 @@ const Contacts = (() => {
     clearForm,
     renderDetailPage,
     backToList,
+    toggleStar,
+    togglePin,
+    toggleDetailStar,
     saveDetail,
     editDetailLabels,
     addLabel,

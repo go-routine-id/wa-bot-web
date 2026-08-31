@@ -76,9 +76,14 @@ Butuh layanan [go-contact](https://github.com/go-routine-id/go-contact) — liha
 - **Tambah kontak** lewat form di atas daftar: nama, nomor, email, alamat, catatan. Nomor yang bukan format WhatsApp valid (8–15 digit) ditandai ⚠️.
 - **Mengubah kontak punya halaman sendiri**: `/contacts/:id` (klik **Edit** di baris, atau buka URL-nya langsung). Halaman ini memuat form lengkap, label kontak, tombol hapus, dan waktu dibuat/diubah. Back/forward browser & deep-link berfungsi, sama seperti detail broadcast. Mengosongkan sebuah kolom di sini benar-benar menghapus isinya.
 - **Label** sebagai kelompok: buat, ganti nama, hapus. Menghapus label TIDAK menghapus kontaknya.
+- **⭐ Favorit** (seperti *starred* di Google Contacts): klik bintang di baris kontak atau di halaman detailnya. Tombol **Favorit** di toolbar menyaring daftar ke kontak berbintang saja.
+- **Sematkan label** dengan bintang di chip-nya. Label tersemat naik ke urutan atas dan muncul sebagai **chip pintasan** di pemilih kontak saat broadcast — jadi kelompok yang sering dipakai tinggal satu klik.
 - Tombol **Label** per baris mengatur label satu kontak sekaligus (centang = pasang, hilangkan semua centang = lepas semua).
 - **Pencarian** (nama/nomor) dan **filter per label** — filter inilah yang dipakai untuk broadcast ke satu kelompok.
 - Di form **Buat Broadcast**, tombol **"📇 Pilih dari kontak"** membuka pemilih dengan pencarian, filter label, dan **"Pilih semua hasil"**. Nomor terpilih **digabungkan** ke daftar yang sudah ada (tidak menimpa) dan duplikat dibuang otomatis.
+- Di pemilih itu ada baris **Pintasan**: `⭐ Favorit` plus setiap label yang disematkan. Satu klik menyaring daftar, lalu **"Pilih semua hasil"** mengambil seluruhnya — inilah jalur "broadcast ke kelompok yang sering dipakai".
+
+> `⭐ Favorit` bukan label sungguhan di database, melainkan filter `?favorite=true`. Jadi kontak berbintang tidak perlu ikut jadi anggota label mana pun.
 
 > Kontak dimuat 100 per permintaan karena itu batas layanan; "Pilih semua hasil" mengambil seluruh halaman, bukan hanya yang tampil.
 

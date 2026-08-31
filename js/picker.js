@@ -122,18 +122,31 @@ const Picker = (() => {
     let hasNext = false;
     let search = '';
     let labelId = '';
+    // Grup semu: bukan label di database, melainkan filter ?favorite=true.
+    // Dengan begitu kontak berbintang bisa jadi tujuan broadcast tanpa harus
+    // didaftarkan sebagai anggota label mana pun.
+    let favoriteOnly = false;
     let searchTimer = null;
     let busy = false;
+
+    const pinned = labels.filter((l) => l.is_favorite);
 
     const dlg = buildDialog(
       'picker-contacts',
       `<div class="modal-card picker-card">
          <h3 class="modal-title"><span class="modal-icon">📇</span><span class="modal-title-text">Pilih dari kontak</span></h3>
+         <div class="pk-shortcuts">
+           <span class="muted pk-shortcut-label">Pintasan:</span>
+           <button type="button" class="chip pk-fav">⭐ Favorit</button>
+           ${pinned.map((l) => `<button type="button" class="chip pk-pin" data-id="${escapeHtml(l.id)}">${escapeHtml(l.name)} (${l.contact_count})</button>`).join('')}
+           ${pinned.length ? '' : '<span class="muted pk-shortcut-hint">sematkan label di tab Kontak agar muncul di sini</span>'}
+         </div>
          <div class="picker-filters">
            <input type="text" class="pk-search" placeholder="Cari nama, nomor, email…">
            <select class="pk-label">
              <option value="">Semua label</option>
-             ${labels.map((l) => `<option value="${escapeHtml(l.id)}">${escapeHtml(l.name)} (${l.contact_count})</option>`).join('')}
+             <option value="__fav__">⭐ Favorit</option>
+             ${labels.map((l) => `<option value="${escapeHtml(l.id)}">${l.is_favorite ? '★ ' : ''}${escapeHtml(l.name)} (${l.contact_count})</option>`).join('')}
            </select>
          </div>
          <div class="picker-bulk">
@@ -168,7 +181,11 @@ const Picker = (() => {
     function renderList() {
       if (loaded.length === 0) {
         listEl.innerHTML = `<p class="muted picker-empty">${
-          search || labelId ? 'Tidak ada kontak yang cocok.' : 'Belum ada kontak tersimpan.'
+          favoriteOnly && !search
+            ? 'Belum ada kontak berbintang. Beri bintang di tab Kontak dulu.'
+            : search || labelId || favoriteOnly
+              ? 'Tidak ada kontak yang cocok.'
+              : 'Belum ada kontak tersimpan.'
         }</p>`;
         return;
       }
@@ -179,7 +196,7 @@ const Picker = (() => {
         <label class="picker-item">
           <input type="checkbox" value="${escapeHtml(c.id)}"${chosen.has(c.id) ? ' checked' : ''}>
           <span class="picker-item-body">
-            <span class="picker-item-label">${escapeHtml(c.name)}</span>
+            <span class="picker-item-label">${c.is_favorite ? '<span class="star-inline">★</span> ' : ''}${escapeHtml(c.name)}</span>
             <span class="picker-item-sub">${escapeHtml(c.phone)}${
               Contacts.isSendableNumber(c.phone) ? '' : ' ⚠️ bukan format nomor valid'
             }</span>
@@ -204,7 +221,7 @@ const Picker = (() => {
         listEl.innerHTML = '<p class="muted picker-empty">Memuat…</p>';
       }
       try {
-        const res = await fetchPage({ page, pageSize: PICKER_PAGE_SIZE, search, labelId });
+        const res = await fetchPage({ page, pageSize: PICKER_PAGE_SIZE, search, labelId, favoriteOnly });
         loaded = reset ? res.items : loaded.concat(res.items);
         total = res.pagination ? res.pagination.total : loaded.length;
         hasNext = !!(res.pagination && res.pagination.has_next);
@@ -242,8 +259,39 @@ const Picker = (() => {
       }, 300);
     });
     labelEl.addEventListener('change', () => {
-      labelId = labelEl.value;
+      // "⭐ Favorit" bukan id label — ia memilih filter yang sama sekali berbeda.
+      // Mengirimkan "__fav__" sebagai label-id akan ditolak backend sebagai
+      // "invalid label id".
+      favoriteOnly = labelEl.value === '__fav__';
+      labelId = favoriteOnly ? '' : labelEl.value;
+      syncShortcuts();
       reload();
+    });
+
+    /** Chip pintasan menyala mengikuti filter yang sedang aktif. */
+    function syncShortcuts() {
+      dlg.querySelector('.pk-fav').classList.toggle('on', favoriteOnly);
+      dlg.querySelectorAll('.pk-pin').forEach((b) => {
+        b.classList.toggle('on', !favoriteOnly && b.dataset.id === labelId);
+      });
+      labelEl.value = favoriteOnly ? '__fav__' : labelId;
+    }
+
+    dlg.querySelector('.pk-fav').addEventListener('click', () => {
+      favoriteOnly = !favoriteOnly;
+      if (favoriteOnly) labelId = '';
+      syncShortcuts();
+      reload();
+    });
+
+    dlg.querySelectorAll('.pk-pin').forEach((b) => {
+      b.addEventListener('click', () => {
+        const same = !favoriteOnly && labelId === b.dataset.id;
+        labelId = same ? '' : b.dataset.id; // klik lagi = lepas filter
+        favoriteOnly = false;
+        syncShortcuts();
+        reload();
+      });
     });
 
     // "Pilih semua hasil" menarik SELURUH halaman yang cocok filter — bukan hanya
@@ -254,7 +302,7 @@ const Picker = (() => {
       if (UI.isBusy(btn)) return;
       UI.btnBusy(btn, true, 'Mengambil…');
       try {
-        const all = await fetchAll({ search, labelId }, (n, t) => {
+        const all = await fetchAll({ search, labelId, favoriteOnly }, (n, t) => {
           statusEl.textContent = `Mengambil ${n}/${t}…`;
         });
         all.items.forEach((c) => chosen.set(c.id, c));
