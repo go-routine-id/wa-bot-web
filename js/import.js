@@ -204,10 +204,47 @@ const ContactImport = (() => {
         <li><strong>name</strong> — wajib</li>
         <li><strong>label</strong> — opsional, beberapa label dipisah titik-koma <code>;</code></li>
       </ul>
-      <input type="file" class="imp-file" accept=".csv,text/csv">`;
-    dlg.querySelector('.imp-file').addEventListener('change', onFileChosen);
+      <div class="file-drop imp-drop">
+        <div class="fd-ico">📄</div>
+        <p class="fd-title">Klik atau seret berkas CSV ke sini</p>
+        <p class="fd-sub">Berkas .csv — maksimal ${MAX_ITEMS.toLocaleString('id-ID')} baris</p>
+        <button type="button" class="btn primary imp-choose">Pilih berkas CSV</button>
+      </div>
+      <input type="file" class="imp-file file-native" accept=".csv,text/csv">`;
+
+    const input = dlg.querySelector('.imp-file');
+    const drop = dlg.querySelector('.imp-drop');
+    input.addEventListener('change', onFileChosen);
+
+    // Dropzone dibangun di sini, bukan lewat UI.enhanceFileInput: helper itu
+    // khusus gambar (menampilkan thumbnail dan menulis "PNG, JPG, GIF, WebP"),
+    // jadi memakainya untuk CSV akan memberi petunjuk yang salah.
+    drop.addEventListener('click', () => input.click());
+    ['dragenter', 'dragover'].forEach((ev) =>
+      drop.addEventListener(ev, (e) => {
+        e.preventDefault();
+        drop.classList.add('drag');
+      })
+    );
+    ['dragleave', 'drop'].forEach((ev) =>
+      drop.addEventListener(ev, (e) => {
+        e.preventDefault();
+        drop.classList.remove('drag');
+      })
+    );
+    drop.addEventListener('drop', (e) => {
+      const f = e.dataTransfer.files && e.dataTransfer.files[0];
+      if (!f) return;
+      const dt = new DataTransfer();
+      dt.items.add(f);
+      input.files = dt.files;
+      onFileChosen({ target: input });
+    });
+
+    // Tombol Impor sengaja belum ada di layar ini: jumlah yang akan diproses
+    // baru diketahui setelah server menilai berkasnya.
     dlg.querySelector('.imp-run').classList.add('hidden');
-    dlg.querySelector('.imp-summary').textContent = '';
+    dlg.querySelector('.imp-summary').textContent = 'Pilih berkas untuk melihat pratinjau';
   }
 
   async function onFileChosen(e) {

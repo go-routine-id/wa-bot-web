@@ -1243,3 +1243,8 @@ blockquote {
 .imp-more { font-size: 12px; margin: 8px 0 0; }
 .imp-summary { margin-right: auto; font-size: 13px; }
 .imp-back { margin-top: 10px; }
+
+/* Dropzone CSV di dialog impor — sejalan dengan dropzone gambar (.file-drop). */
+.imp-drop { margin-bottom: 4px; }
+.imp-drop .fd-ico { margin-bottom: 6px; }
+.imp-choose { margin-top: 12px; pointer-events: none; } /* klik ditangani dropzone */

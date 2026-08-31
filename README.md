@@ -105,6 +105,8 @@ no,name,label
 
 Alias yang juga dikenali: `nomor`/`phone` untuk `no`, `nama` untuk `name`, dan `label[]` untuk `label`.
 
+Pilih berkas dengan mengklik area unggah atau **menyeretnya ke sana**. Tombol **Impor** baru muncul setelah berkasnya diperiksa — jumlah yang akan diproses memang belum diketahui sebelum itu.
+
 Sebelum menulis apa pun, layar **pratinjau** menandai tiap baris:
 
 | Status | Artinya |
