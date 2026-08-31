@@ -206,6 +206,9 @@ const History = (() => {
         ${canRetry
           ? `<button class="btn small" onclick="History.retryFailed(${b.id}, ${b.retryableFailedCount}, this)">Kirim ulang yang gagal (${b.retryableFailedCount})</button>`
           : ''}
+        ${['completed', 'failed', 'cancelled'].includes(b.status)
+          ? `<button class="btn small primary" onclick="History.rebroadcast(${b.id}, this)">Broadcast ulang</button>`
+          : ''}
       </div>
       <div class="progress"><div class="progress-bar" style="width:${pct}%"></div></div>
       <p class="muted">
@@ -383,6 +386,37 @@ const History = (() => {
     }
   }
 
+  /**
+   * "Broadcast ulang": salin teks + SEMUA nomor broadcast ini ke form Buat
+   * Broadcast untuk diedit, lalu dikirim sebagai broadcast BARU. History yang
+   * lama tidak disentuh sama sekali — ia catatan audit.
+   */
+  async function rebroadcast(id, btn) {
+    if (UI.isBusy(btn)) return;
+    UI.btnBusy(btn, true, 'Menyiapkan…');
+    try {
+      const data = await API.get(`/api/broadcasts/${id}`);
+      const numbers = data.recipients.map((r) => r.recipientNumber);
+      await Broadcast.prefillFrom({
+        messageText: data.broadcast.messageText,
+        sessionId: data.broadcast.sessionId,
+        numbers,
+      });
+      stopPolling(); // pindah keluar dari halaman detail
+      Router.navigate('create');
+      toast(`Teks & ${numbers.length} nomor disalin — edit lalu kirim`, 'ok');
+      if (data.broadcast.mediaPath) {
+        // Gambar tidak ikut tersalin: file-nya milik broadcast lama, dan form
+        // create mengunggah ulang. Beri tahu supaya user tidak kehilangan lampiran.
+        toast('Gambar tidak ikut tersalin — unggah ulang bila masih diperlukan', 'info');
+      }
+    } catch (err) {
+      toast(err.message, 'error');
+    } finally {
+      UI.btnBusy(btn, false);
+    }
+  }
+
   return {
     load,
     openDetail,
@@ -392,6 +426,7 @@ const History = (() => {
     retryFailed,
     addRecipients,
     removeRecipient,
+    rebroadcast,
   };
 })();
 

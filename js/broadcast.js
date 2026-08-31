@@ -77,6 +77,124 @@ const Broadcast = (() => {
 
   let currentSpeedType = 'delay'; // 'delay' | 'rate'
 
+  /* ---------------- editor baris nomor tujuan ---------------- */
+
+  // Textarea tetap jadi jalur cepat untuk tempel massal; daftar baris di bawahnya
+  // memberi edit/hapus per nomor. Keduanya disinkronkan lewat `recipientRows`.
+  let recipientRows = [];
+  let rowSyncing = false; // cegah tulisan balik ke textarea memicu render ulang
+  let rowTimer = null;
+  const MAX_ROWS_RENDER = 300; // jangan bengkakkan DOM untuk daftar sangat besar
+
+  /** Mirror validasi backend: digit saja, 8–15 digit. */
+  function isValidNumber(raw) {
+    return /^\d{8,15}$/.test(String(raw).replace(/\D/g, ''));
+  }
+
+  function parseRowsFromTextarea() {
+    recipientRows = String(document.getElementById('bc-recipients').value)
+      .split(/[,;\s]+/)
+      .map((x) => x.trim())
+      .filter(Boolean);
+  }
+
+  function writeTextareaFromRows() {
+    rowSyncing = true;
+    document.getElementById('bc-recipients').value = recipientRows.join('\n');
+    rowSyncing = false;
+  }
+
+  /** Textarea diketik/ditempel → bangun ulang daftar baris (di-debounce). */
+  function onRecipientsInput() {
+    if (rowSyncing) return;
+    clearTimeout(rowTimer);
+    rowTimer = setTimeout(() => {
+      parseRowsFromTextarea();
+      renderRecipientRows();
+    }, 300);
+  }
+
+  function renderRecipientRows() {
+    const el = document.getElementById('bc-recipient-rows');
+    if (!el) return;
+    if (recipientRows.length === 0) {
+      el.innerHTML = '';
+      return;
+    }
+    const invalid = recipientRows.filter((n) => !isValidNumber(n)).length;
+    const shown = recipientRows.slice(0, MAX_ROWS_RENDER);
+    const rows = shown
+      .map(
+        (n, i) => `
+        <div class="rcp-row${isValidNumber(n) ? '' : ' invalid'}" data-idx="${i}">
+          <span class="rcp-idx">${i + 1}</span>
+          <input type="text" value="${escapeHtml(n)}" oninput="Broadcast.editRecipientRow(${i}, this.value)">
+          <button type="button" class="rcp-del" title="Hapus nomor ini" onclick="Broadcast.removeRecipientRow(${i})">×</button>
+        </div>`
+      )
+      .join('');
+    el.innerHTML = `
+      <div class="rcp-head">
+        <span><strong>${recipientRows.length}</strong> nomor${invalid ? ` · <span class="rcp-warn">${invalid} tidak valid</span>` : ''}</span>
+        <button type="button" class="btn small danger" onclick="Broadcast.clearRecipientRows()">Kosongkan</button>
+      </div>
+      <div class="rcp-list">${rows}</div>
+      ${
+        recipientRows.length > MAX_ROWS_RENDER
+          ? `<p class="muted rcp-more">…${recipientRows.length - MAX_ROWS_RENDER} nomor lain tidak ditampilkan sebagai baris (pakai kotak teks di atas untuk mengeditnya).</p>`
+          : ''
+      }`;
+  }
+
+  /** Edit satu baris. Tidak me-render ulang supaya fokus ketikan tidak lepas. */
+  function editRecipientRow(idx, value) {
+    recipientRows[idx] = value.trim();
+    writeTextareaFromRows();
+    const row = document.querySelector(`#bc-recipient-rows .rcp-row[data-idx="${idx}"]`);
+    if (row) row.classList.toggle('invalid', !isValidNumber(value));
+  }
+
+  function removeRecipientRow(idx) {
+    recipientRows.splice(idx, 1);
+    writeTextareaFromRows();
+    renderRecipientRows();
+  }
+
+  function clearRecipientRows() {
+    recipientRows = [];
+    writeTextareaFromRows();
+    renderRecipientRows();
+  }
+
+  /**
+   * Isi form dari broadcast lama ("Broadcast ulang"). Broadcast asli TIDAK
+   * disentuh — ini hanya menyalin isinya ke form agar bisa diedit lalu dikirim
+   * sebagai broadcast baru.
+   */
+  async function prefillFrom({ messageText, sessionId, numbers }) {
+    // Pakai jalur "tulis langsung": teks yang disalin adalah hasil akhir pesan,
+    // bukan referensi template (template bisa sudah berubah/dihapus).
+    const directRadio = document.querySelector('input[name="bc-source"][value="direct"]');
+    if (directRadio) {
+      directRadio.checked = true;
+      toggleSource();
+    }
+    document.getElementById('bc-message').value = messageText || '';
+    document.getElementById('bc-image').value = '';
+
+    recipientRows = (numbers || []).map((n) => String(n).trim()).filter(Boolean);
+    writeTextareaFromRows();
+    renderRecipientRows();
+
+    // Sesi pengirim: opsi diisi async, jadi tunggu dulu baru pilih sesi asal.
+    await loadSessions();
+    const sel = document.getElementById('bc-session');
+    if (sessionId && sel && [...sel.options].some((o) => o.value === sessionId)) {
+      sel.value = sessionId;
+      if (window.CustomSelect) CustomSelect.refreshAll();
+    }
+  }
+
   function setSpeedType(type) {
     currentSpeedType = type;
     document.getElementById('pill-delay').classList.toggle('active', type === 'delay');
@@ -167,7 +285,7 @@ const Broadcast = (() => {
       const created = await API.post('/api/broadcasts', body);
       toast(`Broadcast #${created.id} dibuat — status: ${created.status}`, 'ok');
       // Reset form
-      document.getElementById('bc-recipients').value = '';
+      clearRecipientRows(); // ikut mengosongkan textarea + daftar baris
       document.getElementById('bc-message').value = '';
       document.getElementById('bc-image').value = '';
       // Pindah ke tab history (URL ikut berubah ke /history)
@@ -179,7 +297,20 @@ const Broadcast = (() => {
     }
   }
 
-  return { toggleSource, setSpeedType, updateSpeedPreview, loadTemplates, loadSessions, previewTemplate, submit };
+  return {
+    toggleSource,
+    setSpeedType,
+    updateSpeedPreview,
+    loadTemplates,
+    loadSessions,
+    previewTemplate,
+    submit,
+    onRecipientsInput,
+    editRecipientRow,
+    removeRecipientRow,
+    clearRecipientRows,
+    prefillFrom,
+  };
 })();
 
 window.Broadcast = Broadcast;

@@ -65,8 +65,9 @@
         <div class="cs" data-cs-for="bc-session" data-cs-placeholder="Pilih sesi pengirim" data-cs-searchable></div>
         <select id="bc-session" class="cs-native" hidden></select>
 
-        <label for="bc-recipients">Nomor tujuan (pisahkan dengan koma)</label>
-        <textarea id="bc-recipients" rows="4" placeholder="6281234567890, 6289876543210, ..."></textarea>
+        <label for="bc-recipients">Nomor tujuan (pisahkan dengan koma / baris baru)</label>
+        <textarea id="bc-recipients" rows="4" placeholder="6281234567890, 6289876543210, ..." oninput="Broadcast.onRecipientsInput()"></textarea>
+        <div id="bc-recipient-rows"></div>
 
         <div class="row">
           <div class="col">

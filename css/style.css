@@ -288,6 +288,67 @@ textarea { resize: vertical; }
   margin: 0 0 12px;
 }
 
+/* Editor baris nomor tujuan di form Buat Broadcast */
+#bc-recipient-rows { margin-top: 10px; }
+.rcp-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.rcp-warn { color: var(--danger); font-weight: 600; }
+.rcp-list {
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: #fff;
+  padding: 6px;
+}
+.rcp-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 4px;
+}
+.rcp-idx {
+  flex: none;
+  width: 30px;
+  text-align: right;
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.rcp-row input {
+  flex: 1;
+  padding: 6px 10px !important;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  border-radius: 8px;
+}
+.rcp-row.invalid input {
+  border-color: rgba(179, 57, 47, 0.5);
+  background: #fdf6f5;
+}
+.rcp-del {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  line-height: 1;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--muted);
+  font-size: 16px;
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
+}
+.rcp-del:hover { color: var(--danger); border-color: var(--danger); background: #fdf3f2; }
+.rcp-more { font-size: 12px; margin: 8px 0 0; }
+
 /* ---------- Badge ---------- */
 .badge {
   display: inline-flex;
