@@ -83,7 +83,14 @@ const Broadcast = (() => {
       // dihapus atau sedang tidak terhubung.
       if (desiredSessionId) {
         const opt = [...sel.options].find((o) => o.value === desiredSessionId && !o.disabled);
-        if (opt) sel.value = desiredSessionId;
+        if (opt) {
+          sel.value = desiredSessionId;
+        } else {
+          // Sesi asal sudah dihapus atau sedang tidak terhubung → tidak akan pernah
+          // bisa dipakai. Lepaskan penandanya, jangan mengendap: kalau tidak, slug
+          // yang sama dibuat lagi nanti akan diam-diam merebut pilihan user.
+          desiredSessionId = null;
+        }
       }
       CustomSelect.refreshAll(); // custom dropdown ikut render ulang
     } catch (err) {
