@@ -286,13 +286,24 @@ const Contacts = (() => {
     if (!el) return;
 
     if (contactsCache.length === 0) {
-      const filtering = filterState.search || filterState.labelId;
+      // favoriteOnly WAJIB ikut dihitung. Tanpa itu, menyaring favorit saat belum
+      // ada kontak berbintang menampilkan "Belum ada kontak" — padahal kontaknya
+      // ada banyak, hanya tidak ada yang berbintang. Pesan itu membuat orang
+      // mengira datanya hilang.
+      const filtering = filterState.search || filterState.labelId || filterState.favoriteOnly;
+      const favoritKosong = filterState.favoriteOnly && !filterState.search && !filterState.labelId;
       el.innerHTML = UI.emptyState({
-        icon: filtering ? '🔍' : '📇',
-        title: filtering ? 'Tidak ada kontak yang cocok' : 'Belum ada kontak',
-        body: filtering
-          ? 'Ubah kata kunci atau pilih label lain.'
-          : 'Tambah manual lewat form di atas, atau simpan dari broadcast lama di tab History.',
+        icon: favoritKosong ? '⭐' : filtering ? '🔍' : '📇',
+        title: favoritKosong
+          ? 'Belum ada kontak berbintang'
+          : filtering
+            ? 'Tidak ada kontak yang cocok'
+            : 'Belum ada kontak',
+        body: favoritKosong
+          ? 'Klik bintang ☆ di baris kontak untuk menandainya sebagai favorit.'
+          : filtering
+            ? 'Ubah kata kunci atau pilih label lain.'
+            : 'Tambah manual lewat form di atas, atau simpan dari broadcast lama di tab History.',
       });
       return;
     }

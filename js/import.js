@@ -291,11 +291,19 @@ const ContactImport = (() => {
     const counts = { new: 0, existing: 0, invalid: 0, dupe: 0 };
     plan.forEach((r) => { counts[r.status] += 1; });
 
-    const labelNames = new Set();
+    // Dedup case-insensitive, SAMA seperti di runImport. Kalau di sini
+    // case-sensitive, pratinjau menjanjikan "VIP, vip, ViP" sebagai tiga label
+    // baru padahal yang dibuat cuma satu — pratinjau yang tidak cocok dengan
+    // hasilnya lebih buruk daripada tidak ada pratinjau.
+    const labelNames = new Map(); // huruf kecil → ejaan pertama
     plan.forEach((r) => {
-      if (r.status === 'new' || r.status === 'existing') r.labels.forEach((l) => labelNames.add(l));
+      if (r.status !== 'new' && r.status !== 'existing') return;
+      r.labels.forEach((l) => {
+        const key = l.toLowerCase();
+        if (!labelNames.has(key)) labelNames.set(key, l);
+      });
     });
-    const newLabels = [...labelNames].filter((n) => !labelsByName.has(n.toLowerCase()));
+    const newLabels = [...labelNames].filter(([key]) => !labelsByName.has(key)).map(([, name]) => name);
 
     const badge = {
       new: '<span class="imp-badge new">baru</span>',
@@ -334,7 +342,15 @@ const ContactImport = (() => {
           <tbody>${rows}</tbody>
         </table>
       </div>
-      ${plan.length > PREVIEW_ROWS ? `<p class="muted imp-more">Menampilkan ${PREVIEW_ROWS} dari ${plan.length} baris. Semuanya tetap diproses saat impor.</p>` : ''}`;
+      ${plan.length > PREVIEW_ROWS ? `<p class="muted imp-more">Menampilkan ${PREVIEW_ROWS} dari ${plan.length} baris. Semuanya tetap diproses saat impor.</p>` : ''}
+      <button type="button" class="btn small imp-back">← Pilih berkas lain</button>`;
+
+    // Salah pilih berkas ketahuan justru DI layar pratinjau. Tanpa jalan kembali,
+    // satu-satunya cara mengganti adalah menutup dialog lalu mengulang dari awal.
+    dlg.querySelector('.imp-back').addEventListener('click', () => {
+      plan = [];
+      renderPickFile();
+    });
 
     const runBtn = dlg.querySelector('.imp-run');
     const willProcess = counts.new + counts.existing;
@@ -358,23 +374,35 @@ const ContactImport = (() => {
     const targets = plan.filter((r) => r.status === 'new' || r.status === 'existing');
     close();
 
-    const result = { created: 0, merged: 0, labelsCreated: 0, failed: [] };
+    const result = { created: 0, merged: 0, labelsCreated: 0, failed: [], labelFailed: new Map(), rowsMissingLabel: 0 };
 
     // --- 1. buat label yang belum ada, SEKALI per nama unik ---
-    // Membuatnya di dalam loop kontak akan menabrak unique index LOWER(name)
-    // begitu dua baris memakai label yang sama.
-    const needed = new Set();
-    targets.forEach((r) => r.labels.forEach((l) => needed.add(l)));
-    const toCreate = [...needed].filter((n) => !labelsByName.has(n.toLowerCase()));
+    //
+    // Dedup HARUS case-insensitive. Keunikan label di server ditegakkan atas
+    // LOWER(name), jadi "VIP" dan "vip" di dua baris berbeda adalah SATU label
+    // di sana — memperlakukannya sebagai dua akan membuat pembuatan kedua
+    // ditolak "duplicate record" dan dilaporkan sebagai kegagalan, padahal tidak
+    // ada yang gagal. Ejaan yang dipakai adalah kemunculan pertama di berkas.
+    const needed = new Map(); // huruf kecil → ejaan asli pertama
+    targets.forEach((r) =>
+      r.labels.forEach((l) => {
+        const key = l.toLowerCase();
+        if (!needed.has(key)) needed.set(key, l);
+      })
+    );
+    const toCreate = [...needed].filter(([key]) => !labelsByName.has(key));
 
     for (let i = 0; i < toCreate.length; i += 1) {
+      const [key, name] = toCreate[i];
       Picker.progress(`Membuat label… ${i + 1}/${toCreate.length}`);
       try {
-        const created = await http.post('/api/labels', { name: toCreate[i] });
+        const created = await http.post('/api/labels', { name });
         labelsByName.set(created.name.toLowerCase(), created);
         result.labelsCreated += 1;
       } catch (err) {
-        result.failed.push({ line: '-', reason: `label "${toCreate[i]}": ${err.message}` });
+        // Ditandai supaya baris yang memakainya bisa melapor label mana yang
+        // tidak terpasang, bukan hanya gagal secara umum.
+        result.labelFailed.set(key, err.message);
       }
     }
 
@@ -383,24 +411,33 @@ const ContactImport = (() => {
       const row = targets[i];
       Picker.progress(`Mengimpor kontak… ${i + 1}/${targets.length}`);
       try {
+        const isNew = row.status === 'new';
         let contactId = row.existingId;
-        if (row.status === 'new') {
+        if (isNew) {
           const c = await http.post('/api/contacts', { name: row.name, phone: row.digits });
           contactId = c.id;
           result.created += 1;
         }
 
         if (row.labels.length > 0) {
-          const wanted = row.labels
-            .map((n) => labelsByName.get(n.toLowerCase()))
-            .filter(Boolean)
-            .map((l) => l.id);
+          const wanted = [];
+          row.labels.forEach((n) => {
+            const l = labelsByName.get(n.toLowerCase());
+            if (l) wanted.push(l.id);
+          });
+          // Label yang gagal dibuat membuat kontak ini punya label lebih sedikit
+          // daripada yang tertulis di CSV. Tanpa dihitung, kekurangannya tak
+          // terlihat di mana pun.
+          if (wanted.length < row.labels.length) result.rowsMissingLabel += 1;
 
           // PUT mengganti SELURUH label kontak, jadi label lama harus dibaca dan
           // digabung — kalau tidak, mengimpor "VIP" akan menghapus label lain
           // yang sudah dipunyai kontak itu.
-          const cur = await http.get(`/api/contacts/${contactId}/labels`);
-          const curIds = (cur.items || []).map((l) => l.id);
+          //
+          // Kontak yang BARU dibuat pasti belum punya label, jadi pembacaannya
+          // dilewati: satu request per kontak baru, dan impor besar seluruhnya
+          // terdiri dari kontak baru.
+          const curIds = isNew ? [] : ((await http.get(`/api/contacts/${contactId}/labels`)).items || []).map((l) => l.id);
           const merged = [...new Set([...curIds, ...wanted])];
           if (merged.length !== curIds.length) {
             await http.put(`/api/contacts/${contactId}/labels`, { label_ids: merged });
@@ -419,6 +456,13 @@ const ContactImport = (() => {
     toast(`Impor selesai — ${parts.join(' · ')}`, 'ok');
     if (result.failed.length) {
       toast(`${result.failed.length} baris gagal (baris ${result.failed[0].line}: ${result.failed[0].reason})`, 'error');
+    }
+    if (result.labelFailed.size) {
+      const names = [...result.labelFailed.keys()].slice(0, 3).join(', ');
+      toast(
+        `${result.labelFailed.size} label gagal dibuat (${names}) — ${result.rowsMissingLabel} kontak jadi kurang label`,
+        'error'
+      );
     }
 
     await Contacts.load();
