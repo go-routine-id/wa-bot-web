@@ -2,35 +2,51 @@
 
 /** Fetch wrapper + helper kecil. Diekspos ke window supaya bisa dipakai semua modul. */
 const API = (() => {
-  /**
-   * API key opsional (backend: env API_KEY). Disimpan per-browser lewat localStorage
-   * supaya tidak perlu menaruh rahasia di berkas yang dilacak git:
-   *     localStorage.setItem('WA_API_KEY', '<kunci>')
-   */
-  function apiKey() {
-    try {
-      return localStorage.getItem('WA_API_KEY') || '';
-    } catch (_) {
-      return ''; // localStorage bisa diblokir (mode privat)
-    }
-  }
-
-  async function request(method, url, body, isMultipart = false) {
-    const opts = { method, headers: {} };
-    const key = apiKey();
-    if (key) opts.headers['X-API-Key'] = key;
+  function buildOpts(method, body, isMultipart) {
+    const opts = { method, headers: { ...Auth.authHeader() } };
     if (body !== undefined) {
       if (isMultipart) {
-        opts.body = body;
+        opts.body = body; // Content-Type diisi browser beserta boundary-nya
       } else {
         opts.headers['Content-Type'] = 'application/json';
         opts.body = JSON.stringify(body);
       }
     }
-    const res = await fetch(apiBase() + url, opts);
+    return opts;
+  }
+
+  /**
+   * Satu percobaan request. Dipisah supaya jalur ulang-setelah-refresh memakai
+   * kode yang sama persis, bukan salinannya.
+   */
+  async function sekaliJalan(method, url, body, isMultipart) {
+    const res = await fetch(apiBase() + url, buildOpts(method, body, isMultipart));
     const json = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+    if (!res.ok) {
+      const err = new Error(json.error || `HTTP ${res.status}`);
+      err.status = res.status;
+      throw err;
+    }
     return json.data !== undefined ? json.data : json;
+  }
+
+  async function request(method, url, body, isMultipart = false) {
+    try {
+      return await sekaliJalan(method, url, body, isMultipart);
+    } catch (err) {
+      // 401 → access token kedaluwarsa (umurnya hanya ±15 menit). Tukar dengan
+      // yang baru lalu ulangi SEKALI. 403 sengaja TIDAK memicu refresh: itu
+      // berarti izinnya kurang, dan token baru tidak akan mengubahnya.
+      if (err.status !== 401 || Auth.disabled()) throw err;
+      try {
+        await Auth.refresh();
+      } catch (_) {
+        Auth.clear();
+        Session.requireLogin('Sesi berakhir, silakan masuk lagi');
+        throw err;
+      }
+      return sekaliJalan(method, url, body, isMultipart);
+    }
   }
 
   return {
@@ -40,7 +56,6 @@ const API = (() => {
     patch: (url, body) => request('PATCH', url, body),
     del: (url, body) => request('DELETE', url, body),
     upload: (url, formData) => request('POST', url, formData, true),
-    apiKey,
   };
 })();
 

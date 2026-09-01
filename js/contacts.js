@@ -15,11 +15,8 @@ const Contacts = (() => {
    * ===================================================================== */
 
   const ContactHTTP = (() => {
-    async function request(method, path, body) {
-      if (!contactsEnabled()) {
-        throw new Error('Layanan kontak dimatikan (WA_CONTACT_BASE kosong)');
-      }
-      const opts = { method, headers: {} };
+    async function sekaliJalan(method, path, body) {
+      const opts = { method, headers: { ...Auth.authHeader() } };
       if (body !== undefined) {
         opts.headers['Content-Type'] = 'application/json';
         opts.body = JSON.stringify(body);
@@ -43,9 +40,32 @@ const Contacts = (() => {
       if (!res.ok) {
         const msg = json.message || `HTTP ${res.status}`;
         // request_id dari go-contact membuat error bisa dilacak ke log server.
-        throw new Error(json.request_id ? `${msg} (ref: ${json.request_id})` : msg);
+        const err = new Error(json.request_id ? `${msg} (ref: ${json.request_id})` : msg);
+        err.status = res.status;
+        throw err;
       }
       return json.data !== undefined ? json.data : json;
+    }
+
+    async function request(method, path, body) {
+      if (!contactsEnabled()) {
+        throw new Error('Layanan kontak dimatikan (WA_CONTACT_BASE kosong)');
+      }
+      try {
+        return await sekaliJalan(method, path, body);
+      } catch (err) {
+        // Sama seperti api.js: hanya 401 yang layak di-refresh. 403 berarti
+        // izinnya kurang — token baru tidak akan menolong.
+        if (err.status !== 401 || Auth.disabled()) throw err;
+        try {
+          await Auth.refresh();
+        } catch (_) {
+          Auth.clear();
+          Session.requireLogin('Sesi berakhir, silakan masuk lagi');
+          throw err;
+        }
+        return sekaliJalan(method, path, body);
+      }
     }
 
     return {

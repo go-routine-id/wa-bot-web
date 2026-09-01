@@ -68,3 +68,37 @@ function contactBase() {
 function contactsEnabled() {
   return contactBase() !== '';
 }
+
+/**
+ * window.WA_ACCOUNT_BASE = base URL account-service (pusat identitas ikavia).
+ *
+ * Frontend memanggilnya LANGSUNG dari browser — tidak ada proxy — jadi origin
+ * ini harus terdaftar di CORS_ORIGINS milik account-service.
+ *
+ * Kosong ('') = autentikasi DIMATIKAN: tidak ada layar login, dan backend
+ * (yang juga dikonfigurasi tanpa ACCOUNT_SERVICE_URL) memakai organisasi
+ * cadangan. Berguna untuk pengembangan lokal; jangan dipakai di production.
+ *
+ * Timpa per-browser lewat localStorage:
+ *     localStorage.setItem('WA_ACCOUNT_BASE', 'https://account.contoh.com')
+ *     localStorage.setItem('WA_ACCOUNT_BASE', '')   // matikan login
+ */
+window.WA_ACCOUNT_BASE = (() => {
+  try {
+    const override = localStorage.getItem('WA_ACCOUNT_BASE');
+    if (override !== null) return override;
+  } catch (_) {
+    // localStorage bisa diblokir (mode privat) → pakai default
+  }
+  return '';
+})();
+
+/** Base URL account-service, trailing slash dibuang. '' = login dimatikan. */
+function accountBase() {
+  return (window.WA_ACCOUNT_BASE || '').replace(/\/+$/, '');
+}
+
+/** true bila alur login aktif. */
+function authEnabled() {
+  return accountBase() !== '';
+}

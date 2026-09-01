@@ -1265,3 +1265,84 @@ blockquote {
 .tpl-actions { white-space: nowrap; }
 /* Kolom waktu di tabel: jangan pernah membungkus jadi dua baris. */
 .col-time { white-space: nowrap; color: var(--muted); }
+
+/* ---------- Layar masuk ---------- */
+.login-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    radial-gradient(900px 480px at 110% -10%, rgba(18, 131, 110, 0.16), transparent 60%),
+    radial-gradient(700px 420px at -10% 110%, rgba(201, 162, 39, 0.14), transparent 60%),
+    var(--bg);
+}
+/* Aplikasi di baliknya tidak boleh bisa di-scroll atau di-tab selagi terkunci. */
+body.login-active { overflow: hidden; }
+
+.login-card {
+  width: min(400px, 100%);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 32px 30px 26px;
+  box-shadow: var(--shadow-lg);
+  animation: modal-in 0.22s var(--ease-spring);
+}
+.login-brand {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+}
+.login-sub { color: var(--muted); font-size: 13px; margin: 0 0 20px; }
+.login-card label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.login-card input { width: 100%; margin-bottom: 14px; }
+.login-submit { width: 100%; justify-content: center; margin-top: 4px; }
+.login-error {
+  background: #fdf3f2;
+  border: 1px solid #f0c4c0;
+  color: var(--danger);
+  border-radius: 10px;
+  padding: 9px 12px;
+  font-size: 13px;
+  margin: 0 0 12px;
+}
+.login-foot { font-size: 11px; text-align: center; margin: 14px 0 0; }
+
+/* Identitas pengguna di kaki sidebar */
+.sidebar-foot {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.who-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 13px;
+  font-weight: 600;
+}
+.who-out {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+.who-out:hover { background: rgba(255, 255, 255, 0.18); }

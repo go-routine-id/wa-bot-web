@@ -38,6 +38,34 @@ Setelah itu:
    Dikosongkan = tab **Kontak** menjelaskan bahwa fiturnya mati, dan fitur broadcast tetap jalan normal.
 5. Buka `http://localhost:5173` (tiap menu punya URL sendiri — `http://localhost:5173/sessions`, `/create`, `/templates`, `/contacts`, `/history`; back/forward browser & deep-link berfungsi). Halaman detail punya URL sendiri: `/history/:id` (mis. `/history/13`) dan `/contacts/:id`. Mulai dari tab **Sesi WhatsApp** → tambah sesi & scan QR.
 
+## Autentikasi (opsional)
+
+Aplikasi bisa dijalankan **dengan atau tanpa** login.
+
+| `WA_ACCOUNT_BASE` | Perilaku |
+|---|---|
+| kosong *(default)* | Tidak ada layar masuk. Backend juga harus dijalankan tanpa `ACCOUNT_SERVICE_URL`; keduanya memakai organisasi cadangan. Untuk pengembangan lokal |
+| diisi | Layar masuk muncul sebelum aplikasi terbuka; setiap request membawa `Authorization: Bearer` |
+
+```js
+localStorage.setItem('WA_ACCOUNT_BASE', 'http://localhost:8874')  // aktifkan
+localStorage.setItem('WA_ACCOUNT_BASE', '')                        // matikan
+```
+
+Origin ini harus terdaftar di `CORS_ORIGINS` milik account-service — frontend
+memanggilnya **langsung, tanpa proxy**.
+
+**Token disimpan di `localStorage`.** Itu konsekuensi dari tidak adanya proxy:
+tanpa lapisan server perantara, tidak ada tempat lain untuk menyimpannya.
+Access token berumur ±15 menit dan ditukar otomatis saat sebuah request
+menerima `401`; `403` **tidak** memicu penukaran, karena izin yang kurang tidak
+akan berubah dengan token baru.
+
+> Penukaran token dijaga agar **hanya satu berjalan pada satu waktu**.
+> account-service merotasi refresh token setiap kali dipakai, jadi dua
+> penukaran serentak akan menyodorkan token usang — yang dianggap penggunaan
+> ulang dan **mencabut seluruh session** pengguna.
+
 ## Memakai
 
 ### 1. Sesi WhatsApp (tab "Sesi WhatsApp")
@@ -132,7 +160,9 @@ server.js       # static file server minimal (tanpa dependency)
 index.html      # entry UI
 css/style.css
 js/
-  api.js        # fetch wrapper (prefix base URL)
+  api.js        # fetch wrapper (prefix base URL) + Bearer + tukar token saat 401
+  auth.js       # login/logout/refresh ke account-service; tanpa DOM
+  session.js    # gerbang layar masuk; satu-satunya yang menyentuh DOM
   router.js     # URL routing (History API): /sessions, /create, /templates, /contacts, /contacts/:id, /history
   app.js        # init tab + render aktif
   connection.js # session manager: list kartu sesi + QR + countdown + tambah/rename/hapus/logout/rescan
