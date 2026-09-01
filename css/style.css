@@ -148,7 +148,10 @@ label {
   color: var(--muted);
   margin: 14px 0 6px;
 }
-input[type="text"], input[type="number"], textarea, select {
+/* email & password IKUT di sini: tanpa keduanya, form login jatuh ke gaya
+   bawaan browser dan terlihat asing di tengah aplikasi. */
+input[type="text"], input[type="number"], input[type="email"], input[type="password"],
+textarea, select {
   width: 100%;
   padding: 11px 13px;
   border: 1px solid var(--border);
@@ -158,7 +161,8 @@ input[type="text"], input[type="number"], textarea, select {
   background: #fff;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
-input[type="text"]:focus, input[type="number"]:focus, textarea:focus, select:focus {
+input[type="text"]:focus, input[type="number"]:focus, input[type="email"]:focus,
+input[type="password"]:focus, textarea:focus, select:focus {
   outline: none;
   border-color: var(--primary-2);
   box-shadow: 0 0 0 4px rgba(18, 131, 110, 0.13);
@@ -1276,50 +1280,83 @@ blockquote {
   justify-content: center;
   padding: 24px;
   background:
-    radial-gradient(900px 480px at 110% -10%, rgba(18, 131, 110, 0.16), transparent 60%),
-    radial-gradient(700px 420px at -10% 110%, rgba(201, 162, 39, 0.14), transparent 60%),
+    radial-gradient(820px 520px at 82% 6%, rgba(18, 131, 110, 0.16), transparent 62%),
+    radial-gradient(680px 460px at 12% 96%, rgba(201, 162, 39, 0.15), transparent 62%),
     var(--bg);
 }
-/* Aplikasi di baliknya tidak boleh bisa di-scroll atau di-tab selagi terkunci. */
+/* Aplikasi di baliknya tidak boleh bisa di-scroll selagi terkunci. */
 body.login-active { overflow: hidden; }
 
 .login-card {
-  width: min(400px, 100%);
+  position: relative;
+  width: min(420px, 100%);
   background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  padding: 32px 30px 26px;
+  border: 1px solid rgba(229, 225, 214, 0.9);
+  border-radius: 20px;
+  padding: 38px 36px 28px;
   box-shadow: var(--shadow-lg);
-  animation: modal-in 0.22s var(--ease-spring);
+  overflow: hidden;
+  animation: modal-in 0.24s var(--ease-spring);
 }
+/* Aksen gradient tipis di tepi atas — sama seperti kartu dialog, supaya layar
+   masuk terasa bagian dari aplikasi ini, bukan halaman terpisah. */
+.login-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--gold), var(--primary-2));
+}
+
 .login-brand {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 800;
   letter-spacing: -0.02em;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
-.login-sub { color: var(--muted); font-size: 13px; margin: 0 0 20px; }
+.login-sub {
+  color: var(--muted);
+  font-size: 13.5px;
+  line-height: 1.5;
+  margin: 0 0 26px;
+}
 .login-card label {
   display: block;
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--muted);
-  margin-bottom: 6px;
+  margin: 0 0 7px;
 }
-.login-card input { width: 100%; margin-bottom: 14px; }
-.login-submit { width: 100%; justify-content: center; margin-top: 4px; }
+.login-card input { width: 100%; margin: 0 0 18px; }
+.login-submit {
+  width: 100%;
+  padding: 13px 20px;
+  font-size: 15px;
+  margin-top: 6px;
+}
 .login-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
   background: #fdf3f2;
   border: 1px solid #f0c4c0;
   color: var(--danger);
-  border-radius: 10px;
-  padding: 9px 12px;
+  border-radius: 11px;
+  padding: 10px 13px;
   font-size: 13px;
-  margin: 0 0 12px;
+  line-height: 1.45;
+  margin: 0 0 16px;
 }
-.login-foot { font-size: 11px; text-align: center; margin: 14px 0 0; }
+.login-error::before { content: '⚠️'; flex: 0 0 auto; }
+.login-foot {
+  font-size: 11px;
+  text-align: center;
+  margin: 18px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
 
 /* Identitas pengguna di kaki sidebar */
 .sidebar-foot {
