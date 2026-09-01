@@ -75,7 +75,7 @@ const Auth = (() => {
   /* --------------------------------------------------------------- jaringan */
 
   async function panggil(path, { method = 'POST', body, headers = {} } = {}) {
-    const res = await fetch(accountBase() + path, {
+    const res = await fetch(base() + path, {
       method,
       headers: { 'Content-Type': 'application/json', ...headers },
       body: body === undefined ? undefined : JSON.stringify(body),
@@ -145,8 +145,38 @@ const Auth = (() => {
 
   /* ------------------------------------------------------------- keadaan */
 
-  /** true bila alur login tidak dipakai (pengembangan lokal). */
-  const disabled = () => !authEnabled();
+  // Alamat account-service yang BERLAKU. Diisi dari /api/auth-info saat boot,
+  // atau dari WA_ACCOUNT_BASE bila sengaja dipaksa.
+  let alamatAktif = accountBase();
+
+  /**
+   * Tanyakan ke backend apakah autentikasi menyala dan ke mana harus login.
+   *
+   * Backend adalah satu-satunya pihak yang tahu jawabannya. Sebelum ini,
+   * frontend hanya bisa tahu dari 401 — dan pada saat itu ia tidak tahu alamat
+   * penerbit identitasnya, jadi tidak bisa menampilkan layar masuk sama sekali.
+   */
+  async function discover() {
+    if (accountBase()) return true; // sengaja dipaksa lewat WA_ACCOUNT_BASE
+
+    try {
+      const res = await fetch(apiBase() + '/api/auth-info');
+      const json = await res.json().catch(() => ({}));
+      const info = json.data || {};
+      alamatAktif = info.enabled && info.accountServiceUrl ? info.accountServiceUrl : '';
+    } catch (_) {
+      // Backend tak terjangkau: jangan mengunci layar. Pengguna akan melihat
+      // error jaringan yang sebenarnya, bukan layar masuk yang menyesatkan.
+      alamatAktif = '';
+    }
+    return alamatAktif !== '';
+  }
+
+  /** Alamat account-service yang dipakai — hasil discover atau override. */
+  const base = () => alamatAktif;
+
+  /** true bila alur login tidak dipakai. */
+  const disabled = () => !alamatAktif;
 
   /** true bila ada kredensial tersimpan. Tidak menjamin masih berlaku. */
   function loggedIn() {
@@ -160,6 +190,8 @@ const Auth = (() => {
   }
 
   return {
+    discover,
+    base,
     login,
     logout,
     refresh,

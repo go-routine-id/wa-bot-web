@@ -42,14 +42,21 @@ Setelah itu:
 
 Aplikasi bisa dijalankan **dengan atau tanpa** login.
 
-| `WA_ACCOUNT_BASE` | Perilaku |
+**Tidak ada yang perlu disetel.** Saat dimuat, aplikasi menanyakan
+`GET /api/auth-info` ke backend — backend-lah yang tahu autentikasi menyala atau
+tidak, dan ke mana harus login.
+
+| Backend | Yang terjadi di browser |
 |---|---|
-| kosong *(default)* | Tidak ada layar masuk. Backend juga harus dijalankan tanpa `ACCOUNT_SERVICE_URL`; keduanya memakai organisasi cadangan. Untuk pengembangan lokal |
-| diisi | Layar masuk muncul sebelum aplikasi terbuka; setiap request membawa `Authorization: Bearer` |
+| `ACCOUNT_SERVICE_URL` kosong | Tidak ada layar masuk; aplikasi langsung terbuka |
+| `ACCOUNT_SERVICE_URL` diisi | Layar masuk muncul sebelum aplikasi terbuka |
+
+`WA_ACCOUNT_BASE` di `localStorage` hanya untuk **memaksa** alamat lain, mis.
+saat account-service yang dipakai browser berbeda dari yang dipakai backend:
 
 ```js
-localStorage.setItem('WA_ACCOUNT_BASE', 'http://localhost:8874')  // aktifkan
-localStorage.setItem('WA_ACCOUNT_BASE', '')                        // matikan
+localStorage.setItem('WA_ACCOUNT_BASE', 'https://account.contoh.com')
+localStorage.removeItem('WA_ACCOUNT_BASE')   // kembali ikut backend
 ```
 
 Origin ini harus terdaftar di `CORS_ORIGINS` milik account-service — frontend

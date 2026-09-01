@@ -22,12 +22,32 @@ const Session = (() => {
         <label for="login-email">Email</label>
         <input type="email" id="login-email" name="email" autocomplete="username" required>
         <label for="login-password">Kata sandi</label>
-        <input type="password" id="login-password" name="password" autocomplete="current-password" required>
+        <div class="pw-field">
+          <input type="password" id="login-password" name="password" autocomplete="current-password" required>
+          <button type="button" class="pw-peek" aria-label="Tampilkan kata sandi" aria-pressed="false" title="Tampilkan kata sandi">👁️</button>
+        </div>
         <p class="login-error hidden"></p>
         <button type="submit" class="btn primary login-submit">Masuk</button>
         <p class="login-foot muted"></p>
       </form>`;
     document.body.appendChild(overlay);
+
+    // Intip kata sandi. type="button" penting: tanpa itu ia ikut men-submit form.
+    const peek = overlay.querySelector('.pw-peek');
+    peek.addEventListener('click', () => {
+      const input = overlay.querySelector('#login-password');
+      const tampil = input.type === 'text';
+      input.type = tampil ? 'password' : 'text';
+      peek.textContent = tampil ? '👁️' : '🙈';
+      peek.setAttribute('aria-pressed', String(!tampil));
+      const label = tampil ? 'Tampilkan kata sandi' : 'Sembunyikan kata sandi';
+      peek.setAttribute('aria-label', label);
+      peek.title = label;
+      // Kembalikan fokus & posisi kursor ke akhir teks: tanpa ini fokus tertinggal
+      // di tombol dan pengguna harus klik lagi untuk melanjutkan mengetik.
+      input.focus();
+      input.setSelectionRange(input.value.length, input.value.length);
+    });
 
     overlay.querySelector('form').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -77,7 +97,7 @@ const Session = (() => {
     if (!overlay) build();
     overlay.querySelector('.login-sub').textContent =
       catatan || 'Masuk dengan akun ikavia untuk melanjutkan';
-    overlay.querySelector('.login-foot').textContent = `Akun diverifikasi oleh ${accountBase()}`;
+    overlay.querySelector('.login-foot').textContent = `Akun diverifikasi oleh ${Auth.base()}`;
     overlay.classList.remove('hidden');
     document.body.classList.add('login-active');
     const email = overlay.querySelector('#login-email');
@@ -94,19 +114,30 @@ const Session = (() => {
    * Tampilkan layar masuk dan tunggu sampai berhasil.
    * Dipanggil saat boot, dan juga saat refresh token gagal di tengah pemakaian.
    */
+  // Beberapa pemanggil bisa menunggu login yang sama (gerbang boot, plus request
+  // mana pun yang menerima 401). Semuanya menunggu SATU promise — versi
+  // sebelumnya mengembalikan Promise.resolve() untuk pemanggil kedua, sehingga
+  // ia melanjutkan seolah sudah masuk padahal layar login masih terbuka.
+  let menungguLogin = null;
+
   function requireLogin(catatan) {
     show(catatan);
-    if (!siapPakai) {
-      return new Promise((resolve) => {
-        siapPakai = resolve;
+    if (!menungguLogin) {
+      menungguLogin = new Promise((resolve) => {
+        siapPakai = (v) => {
+          menungguLogin = null;
+          resolve(v);
+        };
       });
     }
-    return Promise.resolve();
+    return menungguLogin;
   }
 
   /** Gerbang saat aplikasi dimuat. Resolve begitu boleh masuk. */
   async function gate() {
-    if (Auth.disabled()) return; // pengembangan lokal tanpa account-service
+    // Tanya backend dulu: dialah yang tahu autentikasi menyala atau tidak.
+    await Auth.discover();
+    if (Auth.disabled()) return; // backend memang berjalan tanpa autentikasi
     if (Auth.loggedIn()) {
       // Ada token tersimpan, tapi umurnya cuma ±15 menit dan halaman bisa saja
       // dibuka setelah lama ditinggal. Tukar dulu supaya request pertama tidak

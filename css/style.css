@@ -1330,6 +1330,29 @@ body.login-active { overflow: hidden; }
   margin: 0 0 7px;
 }
 .login-card input { width: 100%; margin: 0 0 18px; }
+
+/* Bidang kata sandi + tombol intip */
+.pw-field { position: relative; }
+.pw-field input { padding-right: 46px; }
+.pw-peek {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 42px;
+  width: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-size: 15px;
+  color: var(--muted);
+  border-radius: 0 11px 11px 0;
+  transition: color 0.15s, background 0.15s;
+}
+.pw-peek:hover { color: var(--text); background: rgba(20, 32, 27, 0.05); }
+.pw-peek:focus-visible { outline: 2px solid var(--primary-2); outline-offset: -2px; }
 .login-submit {
   width: 100%;
   padding: 13px 20px;
@@ -1359,6 +1382,11 @@ body.login-active { overflow: hidden; }
 }
 
 /* Identitas pengguna di kaki sidebar */
+/* [hidden] HARUS menang. Atribut `hidden` bekerja lewat aturan UA
+   `[hidden]{display:none}`, dan selector kelas di bawah ini punya kekhususan
+   lebih tinggi — tanpa baris ini, `display: flex` membuat tombol Keluar tetap
+   terlihat meski tidak ada sesi sama sekali. */
+.sidebar-foot[hidden] { display: none !important; }
 .sidebar-foot {
   margin-top: auto;
   padding-top: 16px;

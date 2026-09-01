@@ -75,11 +75,13 @@ function contactsEnabled() {
  * Frontend memanggilnya LANGSUNG dari browser — tidak ada proxy — jadi origin
  * ini harus terdaftar di CORS_ORIGINS milik account-service.
  *
- * Kosong ('') = autentikasi DIMATIKAN: tidak ada layar login, dan backend
- * (yang juga dikonfigurasi tanpa ACCOUNT_SERVICE_URL) memakai organisasi
- * cadangan. Berguna untuk pengembangan lokal; jangan dipakai di production.
+ * Biasanya TIDAK perlu diisi: saat aplikasi dimuat, frontend menanyakannya ke
+ * backend lewat GET /api/auth-info. Backend-lah yang tahu apakah autentikasi
+ * menyala dan ke mana harus login — menuntut setiap pengguna menyetel
+ * localStorage secara manual hanya menghasilkan dinding 401 tanpa jalan keluar.
  *
- * Timpa per-browser lewat localStorage:
+ * Isi ini hanya untuk MEMAKSA alamat tertentu (mis. account-service berbeda dari
+ * yang dipakai backend). Timpa per-browser lewat localStorage:
  *     localStorage.setItem('WA_ACCOUNT_BASE', 'https://account.contoh.com')
  *     localStorage.setItem('WA_ACCOUNT_BASE', '')   // matikan login
  */
