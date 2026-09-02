@@ -76,6 +76,7 @@ const Session = (() => {
     try {
       const profil = await Auth.login(email, password);
       hide();
+      tampilkanAkun();
       if (siapPakai) {
         const r = siapPakai;
         siapPakai = null;
@@ -118,6 +119,23 @@ const Session = (() => {
   // mana pun yang menerima 401). Semuanya menunggu SATU promise — versi
   // sebelumnya mengembalikan Promise.resolve() untuk pemanggil kedua, sehingga
   // ia melanjutkan seolah sudah masuk padahal layar login masih terbuka.
+  /**
+   * Isi identitas akun di kaki sidebar, lalu munculkan tombol Keluar.
+   * Dipanggil di dua jalur masuk: token tersimpan yang berhasil ditukar, dan
+   * login manual — supaya kaki sidebar juga ikut segar kalau di tengah sesi
+   * user masuk sebagai akun lain.
+   */
+  function tampilkanAkun() {
+    const foot = document.getElementById('who');
+    if (!foot) return;
+    const profil = Auth.profile();
+    if (!profil) return; // autentikasi mati: tidak ada akun untuk dikeluarkan
+    const nama = foot.querySelector('.who-name');
+    nama.textContent = profil.displayName || profil.email || 'Akun';
+    nama.title = profil.email || '';
+    foot.hidden = false;
+  }
+
   let menungguLogin = null;
 
   function requireLogin(catatan) {
@@ -144,6 +162,7 @@ const Session = (() => {
       // langsung 401 dan memicu kedip layar login.
       try {
         await Auth.refresh();
+        tampilkanAkun();
         return;
       } catch (_) {
         Auth.clear();
