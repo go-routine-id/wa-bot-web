@@ -443,7 +443,7 @@ const Contacts = (() => {
       clearForm();
       await load();
     } catch (err) {
-      toast(err.message, 'error');
+      toast(err, 'error');
     } finally {
       UI.btnBusy(btn, false);
     }
@@ -472,7 +472,7 @@ const Contacts = (() => {
       }
       await load();
     } catch (err) {
-      toast(err.message, 'error');
+      toast(err, 'error');
     } finally {
       UI.btnBusy(btn, false);
     }
@@ -526,7 +526,7 @@ const Contacts = (() => {
       toast(`Label "${name}" dibuat`, 'ok');
       await load();
     } catch (err) {
-      toast(err.message, 'error');
+      toast(err, 'error');
     } finally {
       UI.btnBusy(btn, false);
     }
@@ -542,7 +542,7 @@ const Contacts = (() => {
       toast('Label diganti', 'ok');
       await load();
     } catch (err) {
-      toast(err.message, 'error');
+      toast(err, 'error');
     }
   }
 
@@ -565,7 +565,7 @@ const Contacts = (() => {
       if (filterState.labelId === id) filterState.labelId = ''; // filter aktif ikut dilepas
       await load();
     } catch (err) {
-      toast(err.message, 'error');
+      toast(err, 'error');
     }
   }
 
@@ -596,7 +596,7 @@ const Contacts = (() => {
     } catch (err) {
       btn.classList.toggle('on', !next);
       btn.textContent = next ? '☆' : '★';
-      toast(err.message, 'error');
+      toast(err, 'error');
     } finally {
       btn.disabled = false;
     }
@@ -614,7 +614,7 @@ const Contacts = (() => {
       await ContactHTTP.put(`/api/labels/${id}`, { is_favorite: !l.is_favorite });
       await load(); // urutan label ikut berubah → render ulang panelnya
     } catch (err) {
-      toast(err.message, 'error');
+      toast(err, 'error');
       btn.disabled = false;
     }
   }
@@ -634,7 +634,7 @@ const Contacts = (() => {
       const data = await ContactHTTP.get(`/api/contacts/${contactId}/labels`);
       current = (data.items || []).map((l) => l.id);
     } catch (err) {
-      toast(err.message, 'error');
+      toast(err, 'error');
       UI.btnBusy(btn, false);
       return;
     }
@@ -654,7 +654,7 @@ const Contacts = (() => {
       toast('Label kontak diperbarui', 'ok');
       await load();
     } catch (err) {
-      toast(err.message, 'error');
+      toast(err, 'error');
     }
   }
 
@@ -674,7 +674,7 @@ const Contacts = (() => {
     try {
       await fetchAllLabels();
     } catch (err) {
-      toast(err.message, 'error');
+      toast(err, 'error');
       return null;
     }
     return Picker.contacts({ labels: labelsCache, fetchPage: fetchContactPage, fetchAll: fetchAllContacts });
@@ -701,7 +701,7 @@ const Contacts = (() => {
     try {
       labels = await fetchAllLabels();
     } catch (err) {
-      toast(err.message, 'error');
+      toast(err, 'error');
       return null;
     }
 
@@ -720,7 +720,7 @@ const Contacts = (() => {
       );
     } catch (err) {
       Picker.progressDone();
-      toast(err.message, 'error');
+      toast(err, 'error');
       return null;
     }
 
@@ -920,7 +920,7 @@ const Contacts = (() => {
       renderDetail();
       toast(next ? 'Ditambahkan ke favorit' : 'Dilepas dari favorit', 'ok');
     } catch (err) {
-      toast(err.message, 'error');
+      toast(err, 'error');
       btn.disabled = false;
     }
   }
@@ -952,7 +952,7 @@ const Contacts = (() => {
       renderDetail();
       toast('Kontak diperbarui', 'ok');
     } catch (err) {
-      toast(err.message, 'error');
+      toast(err, 'error');
     } finally {
       UI.btnBusy(btn, false);
     }
@@ -986,7 +986,7 @@ const Contacts = (() => {
       renderDetail();
       toast('Label kontak diperbarui', 'ok');
     } catch (err) {
-      toast(err.message, 'error');
+      toast(err, 'error');
     } finally {
       UI.btnBusy(btn, false);
     }

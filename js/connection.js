@@ -208,7 +208,7 @@ const Connection = (() => {
       input.value = '';
       await refresh();
     } catch (err) {
-      toast(err.message, 'error');
+      toast(err, 'error');
     } finally {
       UI.btnBusy(btn, false);
     }
@@ -229,7 +229,7 @@ const Connection = (() => {
       toast('Sesi di-rename', 'ok');
       await refresh();
     } catch (err) {
-      toast(err.message, 'error');
+      toast(err, 'error');
     } finally {
       UI.btnBusy(btn, false);
     }
@@ -250,7 +250,7 @@ const Connection = (() => {
       toast('Sesi dihapus', 'ok');
       await refresh();
     } catch (err) {
-      toast(err.message, 'error');
+      toast(err, 'error');
     } finally {
       UI.btnBusy(btn, false);
     }
@@ -264,7 +264,7 @@ const Connection = (() => {
       toast('Memulai ulang sesi…', 'ok');
       await refresh();
     } catch (err) {
-      toast(err.message, 'error');
+      toast(err, 'error');
     } finally {
       UI.btnBusy(btn, false);
     }
@@ -288,7 +288,7 @@ const Connection = (() => {
       toast('Kode pairing diminta — muncul dalam beberapa detik…', 'ok');
       await refresh();
     } catch (err) {
-      toast(err.message, 'error');
+      toast(err, 'error');
     } finally {
       UI.btnBusy(btn, false);
     }
@@ -309,7 +309,7 @@ const Connection = (() => {
       toast('Logout berhasil', 'ok');
       await refresh();
     } catch (err) {
-      toast(err.message, 'error');
+      toast(err, 'error');
     } finally {
       UI.btnBusy(btn, false);
     }

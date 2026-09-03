@@ -1411,3 +1411,16 @@ body.login-active { overflow: hidden; }
   color: #fff;
 }
 .who-out:hover { background: rgba(255, 255, 255, 0.18); }
+/* Baris request id di dalam toast error. Sengaja bisa diseleksi (toast lain
+   tidak) — gunanya memang untuk disalin lalu dicocokkan dengan log server. */
+.toast-id {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+  opacity: 0.85;
+  user-select: text;
+  cursor: text;
+}
+

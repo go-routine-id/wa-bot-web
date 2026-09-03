@@ -146,7 +146,7 @@ const History = (() => {
       renderDetail(data.broadcast, data.recipients);
       ensurePolling([data.broadcast]);
     } catch (err) {
-      toast(err.message, 'error');
+      toast(err, 'error');
       Router.navigate('history'); // detail tak ditemukan → balik ke list
     }
   }
@@ -261,7 +261,7 @@ const History = (() => {
       if (currentDetailId() === id) await renderDetailPage(id);
       else await load();
     } catch (err) {
-      toast(err.message, 'error');
+      toast(err, 'error');
     } finally {
       UI.btnBusy(btn, false);
     }
@@ -321,7 +321,7 @@ const History = (() => {
       if (currentDetailId() === id) await renderDetailPage(id);
       else await load();
     } catch (err) {
-      toast(err.message, 'error');
+      toast(err, 'error');
     } finally {
       UI.btnBusy(btn, false);
     }
@@ -344,7 +344,7 @@ const History = (() => {
       if (input) input.value = '';
       await renderDetailPage(id);
     } catch (err) {
-      toast(err.message, 'error');
+      toast(err, 'error');
     } finally {
       UI.btnBusy(btn, false);
     }
@@ -381,7 +381,7 @@ const History = (() => {
       toast('Nomor dihapus', 'ok');
       await renderDetailPage(broadcastId);
     } catch (err) {
-      toast(err.message, 'error');
+      toast(err, 'error');
     } finally {
       UI.btnBusy(btn, false);
     }
@@ -405,7 +405,7 @@ const History = (() => {
       }
       await Contacts.saveNumbers(numbers, { suggestedLabel: `Broadcast #${id}` });
     } catch (err) {
-      toast(err.message, 'error');
+      toast(err, 'error');
     } finally {
       UI.btnBusy(btn, false);
     }
@@ -436,7 +436,7 @@ const History = (() => {
         toast('Gambar tidak ikut tersalin — unggah ulang bila masih diperlukan', 'info');
       }
     } catch (err) {
-      toast(err.message, 'error');
+      toast(err, 'error');
     } finally {
       UI.btnBusy(btn, false);
     }

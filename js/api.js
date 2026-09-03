@@ -25,6 +25,10 @@ const API = (() => {
     if (!res.ok) {
       const err = new Error(json.error || `HTTP ${res.status}`);
       err.status = res.status;
+      // Dari body kalau ada; kalau tidak (mis. error yang dibuat proxy/di luar
+      // aplikasi) jatuh ke header. Header hanya terbaca lintas-origin bila
+      // backend meng-expose-nya — itu sebabnya CORS ikut diubah.
+      err.requestId = json.request_id || res.headers.get('X-Request-ID') || null;
       throw err;
     }
     return json.data !== undefined ? json.data : json;
@@ -148,12 +152,36 @@ function truncate(text, max) {
   return units.slice(0, max).join('') + '…';
 }
 
+/**
+ * toast(pesan|Error, type)
+ *
+ * Menerima Error langsung supaya request id-nya ikut tampil tanpa perlu
+ * dirakit ulang di 35 tempat pemanggilan. Id ditampilkan sebagai baris kedua
+ * yang bisa diblok & disalin — itulah yang nanti dicocokkan dengan log server.
+ * Toast ber-id juga bertahan lebih lama; 3,5 detik tidak cukup untuk menyalin.
+ */
 function toast(message, type = 'info') {
+  const err = message && typeof message === 'object' && 'message' in message ? message : null;
+  const teks = err ? err.message : message;
+  const requestId = err ? err.requestId : null;
+
   const el = document.createElement('div');
   el.className = `toast ${type}`;
-  el.textContent = message;
+
+  const baris = document.createElement('div');
+  baris.textContent = teks;
+  el.appendChild(baris);
+
+  if (requestId) {
+    const idEl = document.createElement('div');
+    idEl.className = 'toast-id';
+    idEl.textContent = `ID: ${requestId}`;
+    idEl.title = 'Sebutkan id ini saat melaporkan error — ia menunjuk ke satu baris log';
+    el.appendChild(idEl);
+  }
+
   document.body.appendChild(el);
-  setTimeout(() => el.remove(), 3500);
+  setTimeout(() => el.remove(), requestId ? 12000 : 3500);
 }
 
 window.API = API;

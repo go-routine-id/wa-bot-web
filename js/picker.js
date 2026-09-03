@@ -321,7 +321,7 @@ const Picker = (() => {
         renderList();
         updateCount();
       } catch (err) {
-        toast(err.message, 'error');
+        toast(err, 'error');
       } finally {
         UI.btnBusy(btn, false);
       }

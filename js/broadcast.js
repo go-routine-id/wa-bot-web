@@ -42,7 +42,7 @@ const Broadcast = (() => {
       previewTemplate();
       loadSessions(); // sesi pengirim — refresh tiap tab create dibuka
     } catch (err) {
-      toast(err.message, 'error');
+      toast(err, 'error');
     }
   }
 
@@ -94,7 +94,7 @@ const Broadcast = (() => {
       }
       CustomSelect.refreshAll(); // custom dropdown ikut render ulang
     } catch (err) {
-      toast(err.message, 'error');
+      toast(err, 'error');
     }
   }
 
@@ -362,7 +362,7 @@ const Broadcast = (() => {
       // Pindah ke tab history (URL ikut berubah ke /history)
       Router.navigate('history');
     } catch (err) {
-      toast(err.message, 'error');
+      toast(err, 'error');
     } finally {
       UI.btnBusy(btn, false);
     }

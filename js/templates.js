@@ -75,7 +75,7 @@ const Templates = (() => {
       document.getElementById('tpl-cancel-edit').classList.remove('hidden');
       document.getElementById('tpl-name').scrollIntoView({ behavior: 'smooth' });
     } catch (err) {
-      toast(err.message, 'error');
+      toast(err, 'error');
     }
   }
 
@@ -117,7 +117,7 @@ const Templates = (() => {
       clearForm();
       await load();
     } catch (err) {
-      toast(err.message, 'error');
+      toast(err, 'error');
     } finally {
       UI.btnBusy(btn, false);
     }
@@ -137,7 +137,7 @@ const Templates = (() => {
       toast('Template dihapus', 'ok');
       await load();
     } catch (err) {
-      toast(err.message, 'error');
+      toast(err, 'error');
     } finally {
       UI.btnBusy(btn, false);
     }
