@@ -51,6 +51,22 @@ tidak, dan ke mana harus login.
 | `ACCOUNT_SERVICE_URL` kosong | Tidak ada layar masuk; aplikasi langsung terbuka |
 | `ACCOUNT_SERVICE_URL` diisi | Layar masuk muncul sebelum aplikasi terbuka |
 
+## Jeda bawaan antar pesan
+
+Form broadcast memakai **30 detik** per pesan sebagai nilai awal — makin rapat
+pengiriman, makin besar risiko nomor diblokir WhatsApp. Ini hanya nilai awal;
+pengguna tetap bisa mengubahnya sebelum mengirim.
+
+Diatur di `config.js` (`window.WA_DEFAULT_DELAY_SECONDS`), atau per-browser:
+
+```js
+localStorage.setItem('WA_DEFAULT_DELAY_SECONDS', '60')
+localStorage.removeItem('WA_DEFAULT_DELAY_SECONDS')   // kembali ke default
+```
+
+Input "Rate/menit" ikut dihitung dari angka ini, jadi kedua tampilan tidak
+pernah saling bertentangan.
+
 `WA_ACCOUNT_BASE` di `localStorage` hanya untuk **memaksa** alamat lain, mis.
 saat account-service yang dipakai browser berbeda dari yang dipakai backend:
 

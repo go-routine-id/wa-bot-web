@@ -92,11 +92,11 @@
             <label for="bc-delay" id="bc-speed-main-label">Jeda antar pesan</label>
             <div class="speed-input-group">
               <div id="bc-speed-delay-wrap" class="speed-input-inline">
-                <input type="number" id="bc-delay" min="0.5" max="3600" step="0.5" value="5" placeholder="5" oninput="Broadcast.updateSpeedPreview()">
+                <input type="number" id="bc-delay" min="0.5" max="3600" step="0.5" oninput="Broadcast.updateSpeedPreview()">
                 <span class="speed-unit">detik / pesan</span>
               </div>
               <div id="bc-speed-rate-wrap" class="speed-input-inline hidden">
-                <input type="number" id="bc-rate" min="1" max="3600" value="20" placeholder="20" oninput="Broadcast.updateSpeedPreview()">
+                <input type="number" id="bc-rate" min="1" max="3600" oninput="Broadcast.updateSpeedPreview()">
                 <span class="speed-unit">pesan / menit</span>
               </div>
               <div class="speed-pill-toggle">
@@ -104,7 +104,7 @@
                 <button type="button" class="btn-pill" id="pill-rate" onclick="Broadcast.setSpeedType('rate')">Rate/menit</button>
               </div>
             </div>
-            <small class="muted" id="bc-speed-preview">Jeda 5 detik antar pesan (~12 pesan/menit)</small>
+            <small class="muted" id="bc-speed-preview"></small>
           </div>
         </div>
 

@@ -265,6 +265,26 @@ const Broadcast = (() => {
     await loadSessions();
   }
 
+  /**
+   * Isi nilai awal kedua input kecepatan dari config.
+   *
+   * Keduanya diisi sekaligus meski hanya satu yang terlihat: keduanya adalah dua
+   * tampilan dari hal yang sama, jadi kalau hanya satu yang mengikuti config,
+   * berpindah tampilan akan diam-diam mengubah kecepatan kirim.
+   */
+  function applySpeedDefaults() {
+    const delay = document.getElementById('bc-delay');
+    const rate = document.getElementById('bc-rate');
+    if (!delay || !rate) return;
+    // Hanya saat masih kosong — jangan menimpa angka yang sedang diketik user
+    // ketika ia berpindah tab lalu kembali.
+    if (!delay.value) delay.value = String(defaultDelaySeconds());
+    if (!rate.value) rate.value = String(defaultRatePerMinute());
+    delay.placeholder = String(defaultDelaySeconds());
+    rate.placeholder = String(defaultRatePerMinute());
+    updateSpeedPreview();
+  }
+
   function setSpeedType(type) {
     currentSpeedType = type;
     document.getElementById('pill-delay').classList.toggle('active', type === 'delay');
@@ -372,6 +392,7 @@ const Broadcast = (() => {
     toggleSource,
     setSpeedType,
     updateSpeedPreview,
+    applySpeedDefaults,
     loadTemplates,
     loadSessions,
     previewTemplate,

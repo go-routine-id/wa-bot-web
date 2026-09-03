@@ -104,3 +104,35 @@ function accountBase() {
 function authEnabled() {
   return accountBase() !== '';
 }
+
+/**
+ * window.WA_DEFAULT_DELAY_SECONDS = jeda bawaan antar pesan pada form broadcast.
+ *
+ * Ditaruh di sini, bukan sebagai value="" di markup, karena ini nilai bisnis:
+ * makin rapat pengiriman makin besar risiko nomor diblokir WhatsApp, dan angka
+ * amannya berbeda tiap pemakaian. Bisa ditimpa per-browser:
+ *
+ *     localStorage.setItem('WA_DEFAULT_DELAY_SECONDS', '60')
+ *     localStorage.removeItem('WA_DEFAULT_DELAY_SECONDS')   // kembali ke default
+ *
+ * Ini hanya nilai AWAL form — pengguna tetap bebas mengubahnya sebelum kirim.
+ */
+window.WA_DEFAULT_DELAY_SECONDS = (() => {
+  try {
+    const override = parseFloat(localStorage.getItem('WA_DEFAULT_DELAY_SECONDS'));
+    if (Number.isFinite(override) && override > 0) return override;
+  } catch (_) {
+    // localStorage bisa diblokir (mode privat) → pakai default
+  }
+  return 30;
+})();
+
+/** Jeda bawaan (detik) dan padanannya dalam pesan/menit, supaya kedua tampilan
+ *  input kecepatan tidak pernah saling bertentangan. */
+function defaultDelaySeconds() {
+  const n = Number(window.WA_DEFAULT_DELAY_SECONDS);
+  return Number.isFinite(n) && n > 0 ? n : 30;
+}
+function defaultRatePerMinute() {
+  return Math.max(1, Math.round(60 / defaultDelaySeconds()));
+}

@@ -14,7 +14,10 @@ const App = (() => {
     if (name === 'templates') Templates.load();
     if (name === 'contacts') Contacts.load();
     if (name === 'history') History.load();
-    if (name === 'create') Broadcast.loadTemplates();
+    if (name === 'create') {
+      Broadcast.applySpeedDefaults();
+      Broadcast.loadTemplates();
+    }
     if (name === 'profile') Profile.load();
   }
 
