@@ -15,6 +15,7 @@ const App = (() => {
     if (name === 'contacts') Contacts.load();
     if (name === 'history') History.load();
     if (name === 'create') Broadcast.loadTemplates();
+    if (name === 'profile') Profile.load();
   }
 
   /** Tampilkan siapa yang sedang masuk, beserta tombol keluar. */
@@ -26,7 +27,9 @@ const App = (() => {
       return;
     }
     const p = Auth.profile();
-    box.querySelector('.who-name').textContent = (p && (p.displayName || p.email)) || 'Pengguna';
+    const nama = box.querySelector('.who-name');
+    nama.textContent = (p && (p.displayName || p.email)) || 'Pengguna';
+    nama.title = (p && p.email) || 'Lihat profil';
     box.hidden = false;
   }
 

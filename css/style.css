@@ -1411,6 +1411,87 @@ body.login-active { overflow: hidden; }
   color: #fff;
 }
 .who-out:hover { background: rgba(255, 255, 255, 0.18); }
+
+/* ============================ Halaman Profil ============================ */
+
+/* .who-name kini <button> supaya bisa diklik menuju profil. Semua gaya bawaan
+   tombol dibuang — di kaki sidebar ia harus tetap terbaca sebagai teks nama. */
+.who-name {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 6px;
+}
+.who-name:hover { text-decoration: underline; }
+.who-name:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+/* Kartu identitas: inisial + nama + tombol keluar sebaris. */
+.pf-ident {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.pf-ident-text { flex: 1; min-width: 0; }
+.pf-ident-text h3 { margin: 0 0 2px; }
+.pf-ident-text p { margin: 0; }
+.pf-avatar {
+  flex: none;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, var(--primary), var(--primary-2));
+  color: #fff;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+/* Daftar pasangan label–nilai. Grid dua kolom supaya nilainya rata kiri
+   satu sama lain; di layar sempit ia melipat jadi satu kolom. */
+.pf-list { margin: 0; }
+.pf-row {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 4px 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.pf-row:last-child { border-bottom: 0; padding-bottom: 0; }
+.pf-row dt { color: var(--muted); font-size: 13px; }
+.pf-row dd { margin: 0; word-break: break-word; }
+.pf-row dd.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px;
+}
+@media (max-width: 640px) {
+  .pf-row { grid-template-columns: 1fr; }
+}
+
+.pf-chip {
+  display: inline-block;
+  padding: 2px 10px;
+  margin: 0 6px 6px 0;
+  border-radius: 999px;
+  background: var(--gold-soft);
+  color: #6b5310;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+/* Dipakai di dua tempat: sebagai penjelas di bawah judul kartu (rapat ke atas),
+   dan sebagai catatan setelah daftar (butuh jarak, kalau tidak ia menempel pada
+   baris terakhir dan terbaca seolah bagian dari nilainya). */
+.pf-note { margin: -4px 0 12px; font-size: 13px; }
+.pf-list + .pf-note { margin: 14px 0 0; }
+
+.pf-chip { min-width: 34px; text-align: center; }
+.pf-ok { color: var(--ok); font-weight: 600; }
+.pf-warn { color: var(--danger); font-weight: 600; }
+
 /* Baris request id di dalam toast error. Sengaja bisa diseleksi (toast lain
    tidak) — gunanya memang untuk disalin lalu dicocokkan dengan log server. */
 .toast-id {

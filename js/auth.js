@@ -189,8 +189,36 @@ const Auth = (() => {
     return t ? { Authorization: `Bearer ${t}` } : {};
   }
 
+  /**
+   * GET ber-token ke account-service (bukan ke wa-bot-service — itu API.get).
+   *
+   * Menangani 401 dengan pola yang sama seperti API.request: tukar token satu
+   * kali lalu ulangi. Tanpa itu, halaman profil yang dibuka setelah tab lama
+   * ditinggalkan akan gagal padahal refresh token-nya masih berlaku.
+   */
+  async function getJson(jalur) {
+    const sekali = async () => {
+      const res = await fetch(base() + jalur, { headers: authHeader() });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || body.success === false) {
+        const err = new Error(body.message || `HTTP ${res.status}`);
+        err.status = res.status;
+        throw err;
+      }
+      return body.data !== undefined ? body.data : body;
+    };
+    try {
+      return await sekali();
+    } catch (err) {
+      if (err.status !== 401) throw err;
+      await refresh(); // gagal → dilempar ke pemanggil yang menampilkan layar masuk
+      return sekali();
+    }
+  }
+
   return {
     discover,
+    getJson,
     base,
     login,
     logout,

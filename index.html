@@ -19,9 +19,11 @@
       <a class="tab-btn" data-tab="templates" href="/templates"><span class="tab-ico">📝</span>Template</a>
       <a class="tab-btn" data-tab="contacts" href="/contacts"><span class="tab-ico">📇</span>Kontak</a>
       <a class="tab-btn" data-tab="history" href="/history"><span class="tab-ico">🕘</span>History</a>
+      <a class="tab-btn" data-tab="profile" href="/profile"><span class="tab-ico">👤</span>Profil</a>
     </nav>
     <div class="sidebar-foot" id="who" hidden>
-      <div class="who-name"></div>
+      <button class="who-name" type="button" title="Lihat profil"
+              onclick="Router.navigate('profile')"></button>
       <button class="btn small who-out" onclick="Session.signOut()">Keluar</button>
     </div>
   </aside>
@@ -192,6 +194,12 @@
       <div id="hist-detail" class="hidden"></div>
       <div id="hist-list"><div class="skeleton-wrap"><div class="skeleton sk-row"></div><div class="skeleton sk-row"></div><div class="skeleton sk-row"></div></div></div>
     </section>
+    <!-- ============ Profil ============ -->
+    <section id="tab-profile" class="tab-section">
+      <h2>Profil</h2>
+      <div id="pf-body"></div>
+    </section>
+
   </main>
 
   <script src="/config.js"></script>
@@ -210,5 +218,6 @@
   <script src="/js/import.js"></script>
   <script src="/js/broadcast.js"></script>
   <script src="/js/history.js"></script>
+  <script src="/js/profile.js"></script>
 </body>
 </html>

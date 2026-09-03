@@ -16,6 +16,7 @@ const Router = (() => {
     { path: '/templates', tab: 'templates' },
     { path: '/contacts', tab: 'contacts' },
     { path: '/history', tab: 'history' },
+    { path: '/profile', tab: 'profile' },
   ];
 
   // Halaman detail broadcast: /history/:id (angka id broadcast)
