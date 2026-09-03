@@ -207,15 +207,27 @@ const CustomSelect = (() => {
       searchBox.addEventListener('keydown', panelKeydown);
     }
     // Tutup saat klik di luar / fokus pindah keluar komponen.
-    // Klik opsi (div non-focusable) memicu focusout dengan relatedTarget null
-    // (fokus pindah ke body) — jangan tutup di situ, biarkan event click yang
-    // memilih. Tab / klik elemen lain / klik di luar tetap menutup.
+    //
+    // Klik opsi (div non-focusable) memindahkan fokus ke WADAH terdekat, dan
+    // itu tidak boleh menutup panel — kalau ditutup di sini, panel hilang di
+    // antara mousedown dan mouseup sehingga event click tidak pernah mendarat
+    // di opsinya, dan pilihan tidak jadi apa-apa.
+    //
+    // Di halaman biasa wadah itu <body>, yang muncul sebagai relatedTarget
+    // null. Di dalam <dialog> modal ia adalah dialog-nya sendiri — bukan null,
+    // dan merupakan LELUHUR root. Versi sebelumnya hanya menjaga kasus null,
+    // jadi setiap dropdown di dalam dialog tidak bisa dipilih dengan mouse.
+    // Karena itu keduanya diperlakukan sama: fokus yang jatuh ke leluhur =
+    // fokus belum benar-benar meninggalkan komponen.
     const onDocClick = (e) => {
       if (open && !root.contains(e.target)) closePanel();
     };
     document.addEventListener('click', onDocClick);
     root.addEventListener('focusout', (e) => {
-      if (open && e.relatedTarget && !root.contains(e.relatedTarget)) closePanel();
+      const ke = e.relatedTarget;
+      if (!open || !ke) return;
+      if (root.contains(ke) || ke.contains(root)) return;
+      closePanel();
     });
 
     /** Baca ulang <option> dari select tersembunyi → render ulang label & panel. */
