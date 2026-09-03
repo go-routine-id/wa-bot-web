@@ -145,35 +145,8 @@
       <div id="ct-detail" class="hidden"></div>
 
       <div id="ct-list-view">
-      <div class="card">
-        <h3>Tambah Kontak</h3>
-        <form id="ct-form" onsubmit="event.preventDefault(); Contacts.save();">
-          <div class="row">
-            <div class="col">
-              <label for="ct-name">Nama</label>
-              <input type="text" id="ct-name" placeholder="cth: Budi Santoso">
-            </div>
-            <div class="col">
-              <label for="ct-phone">Nomor WhatsApp</label>
-              <input type="text" id="ct-phone" placeholder="6281234567890">
-            </div>
-          </div>
-          <div class="row">
-            <div class="col">
-              <label for="ct-email">Email (opsional)</label>
-              <input type="text" id="ct-email" placeholder="budi@contoh.com">
-            </div>
-            <div class="col">
-              <label for="ct-address">Alamat (opsional)</label>
-              <input type="text" id="ct-address" placeholder="cth: Jl. Merdeka 10, Bandung">
-            </div>
-          </div>
-          <label for="ct-notes">Catatan (opsional)</label>
-          <textarea id="ct-notes" rows="2" placeholder="cth: pelanggan sejak 2024"></textarea>
-          <div class="row actions">
-            <button type="submit" class="btn primary">Simpan Kontak</button>
-          </div>
-        </form>
+      <div class="ct-actions">
+        <button class="btn primary" onclick="Contacts.openForm()">+ Tambah Kontak</button>
       </div>
 
       <div class="ct-labels-head">

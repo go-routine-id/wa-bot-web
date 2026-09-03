@@ -1505,3 +1505,69 @@ body.login-active { overflow: hidden; }
   cursor: text;
 }
 
+/* ===================== Dialog tambah kontak ===================== */
+
+.ct-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 18px;
+}
+
+/* .modal dibatasi 440px — terlalu sempit untuk form dua kolom.
+   `width` WAJIB, bukan cuma max-width: <dialog> berukuran fit-content, jadi
+   max-width sendirian tidak pernah melebarkannya. */
+.ct-form-dialog {
+  width: min(680px, 94vw);
+  max-width: min(680px, 94vw);
+}
+.ct-form-dialog .modal-card { padding: 26px 26px 22px; }
+.ct-form-dialog h3 { margin: 0 0 18px; }
+.ct-form-dialog .modal-actions { margin-top: 22px; }
+
+/* Di layar sempit dua kolom jadi bertumpuk sendiri lewat .row/.col yang sudah
+   ada; di sini cukup pastikan dialognya tidak melebihi tinggi layar. */
+.ct-form-dialog .modal-card {
+  max-height: 88vh;
+  overflow-y: auto;
+}
+
+/* Chip pemilih label di dialog tambah kontak. Toggle, bukan pilih-satu:
+   satu kontak boleh punya beberapa label. */
+.ct-form-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-height: 108px;
+  overflow-y: auto;
+  padding: 2px 0 2px;
+}
+.ct-lbl-pick {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.14s, border-color 0.14s, color 0.14s;
+}
+.ct-lbl-pick:hover { border-color: var(--primary-2); }
+.ct-lbl-pick.on {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+  font-weight: 600;
+}
+.ct-lbl-pick:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+/* Chip "+ Label baru" dibedakan dari chip label: garis putus-putus supaya
+   terbaca sebagai aksi, bukan sebagai salah satu label yang bisa dipilih. */
+.ct-lbl-pick.ct-lbl-new {
+  border-style: dashed;
+  color: var(--muted);
+  font-weight: 600;
+}
+.ct-lbl-pick.ct-lbl-new:hover { color: var(--primary); border-color: var(--primary-2); }
+.ct-lbl-kosong { align-self: center; font-size: 13px; }

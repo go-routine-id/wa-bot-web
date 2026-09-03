@@ -42,6 +42,7 @@ const Contacts = (() => {
         // request_id dari go-contact membuat error bisa dilacak ke log server.
         const err = new Error(json.request_id ? `${msg} (ref: ${json.request_id})` : msg);
         err.status = res.status;
+        err.requestId = json.request_id || res.headers.get('X-Request-ID') || null;
         throw err;
       }
       return json.data !== undefined ? json.data : json;
@@ -403,6 +404,155 @@ const Contacts = (() => {
    * Form tambah / edit kontak
    * ===================================================================== */
 
+  /**
+   * Dialog tambah kontak.
+   *
+   * Dulu form ini menetap di atas daftar dan memakan hampir separuh layar
+   * padahal jarang dipakai — daftar kontaknya yang lebih sering dilihat.
+   *
+   * Markup & id field-nya SAMA PERSIS dengan versi inline sebelumnya, jadi
+   * save() dan clearForm() tidak perlu tahu bahwa form-nya kini berada di
+   * dalam dialog. Dialog dibuang lagi saat ditutup (pola yang sama dengan
+   * Picker) supaya tidak ada id kembar yang menetap di DOM.
+   */
+  let formDlg = null;
+
+  function openForm() {
+    if (formDlg) return; // sudah terbuka
+    formDlg = document.createElement('dialog');
+    formDlg.className = 'modal ct-form-dialog';
+    formDlg.innerHTML = `
+      <div class="modal-card">
+        <h3>Tambah Kontak</h3>
+        <form id="ct-form" onsubmit="event.preventDefault(); Contacts.save();">
+          <div class="row">
+            <div class="col">
+              <label for="ct-name">Nama</label>
+              <input type="text" id="ct-name" placeholder="cth: Budi Santoso">
+            </div>
+            <div class="col">
+              <label for="ct-phone">Nomor WhatsApp</label>
+              <input type="text" id="ct-phone" placeholder="6281234567890">
+            </div>
+          </div>
+          <div class="row">
+            <div class="col">
+              <label for="ct-email">Email (opsional)</label>
+              <input type="text" id="ct-email" placeholder="budi@contoh.com">
+            </div>
+            <div class="col">
+              <label for="ct-address">Alamat (opsional)</label>
+              <input type="text" id="ct-address" placeholder="cth: Jl. Merdeka 10, Bandung">
+            </div>
+          </div>
+          <label for="ct-notes">Catatan (opsional)</label>
+          <textarea id="ct-notes" rows="2" placeholder="cth: pelanggan sejak 2024"></textarea>
+          <label>Label (opsional)</label>
+          <div id="ct-form-labels" class="ct-form-labels"></div>
+          <div class="row actions modal-actions">
+            <button type="button" class="btn" onclick="Contacts.closeForm()">Batal</button>
+            <button type="submit" class="btn primary">Simpan Kontak</button>
+          </div>
+        </form>
+      </div>`;
+    document.body.appendChild(formDlg);
+
+    // Esc menutup dialog lewat jalur bawaan <dialog>; ikut dibersihkan di sini
+    // supaya formDlg tidak menunjuk ke elemen yang sudah dibuang.
+    formDlg.addEventListener('close', () => {
+      formDlg?.remove();
+      formDlg = null;
+    });
+
+    // Chip label: dipilih LANGSUNG di sini, bukan lewat dialog kedua. Kontak
+    // boleh punya banyak label, jadi ini toggle — bukan dropdown pilih-satu.
+    // labelsCache sudah terisi oleh load(); kalau kosong (mis. dialog dibuka
+    // sebelum daftar selesai dimuat) diambil sekali di sini.
+    renderFormLabels();
+    if (!labelsCache.length) {
+      fetchAllLabels()
+        .then(renderFormLabels)
+        .catch(() => {
+          /* daftar label gagal dimuat — menambah kontak tetap boleh jalan */
+        });
+    }
+
+    formDlg.showModal();
+    document.getElementById('ct-name').focus();
+  }
+
+  /** Chip label di dialog tambah kontak. Menjaga pilihan yang sudah dibuat. */
+  function renderFormLabels() {
+    const box = document.getElementById('ct-form-labels');
+    if (!box) return;
+    const terpilih = new Set(
+      [...box.querySelectorAll('.ct-lbl-pick.on')].map((b) => b.dataset.id)
+    );
+    const chip = labelsCache
+      .map(
+        (l) =>
+          `<button type="button" class="ct-lbl-pick${terpilih.has(l.id) ? ' on' : ''}" data-id="${escapeHtml(l.id)}">${
+            l.is_favorite ? '★ ' : ''
+          }${escapeHtml(l.name)}</button>`
+      )
+      .join('');
+
+    // Label baru dibuat DARI SINI juga: tanpa ini, menambah kontak dengan label
+    // yang belum ada memaksa menutup dialog, membuat labelnya di daftar bawah,
+    // lalu mengetik ulang seluruh isian kontak.
+    box.innerHTML =
+      chip +
+      '<button type="button" class="ct-lbl-pick ct-lbl-new">+ Label baru</button>' +
+      (labelsCache.length ? '' : '<span class="muted ct-lbl-kosong">belum ada label</span>');
+
+    box.querySelectorAll('.ct-lbl-pick:not(.ct-lbl-new)').forEach((b) => {
+      b.addEventListener('click', () => b.classList.toggle('on'));
+    });
+    box.querySelector('.ct-lbl-new').addEventListener('click', (e) => buatLabelDariForm(e.currentTarget));
+  }
+
+  /**
+   * Buat label baru dari dalam dialog kontak, lalu langsung tandai terpilih.
+   *
+   * Sengaja TIDAK memakai addLabel(): fungsi itu memanggil load() yang
+   * merender ulang seluruh daftar kontak di belakang dialog, dan ia tidak
+   * mengembalikan label yang baru dibuat sehingga tidak bisa langsung dipilih.
+   */
+  async function buatLabelDariForm(btn) {
+    if (UI.isBusy(btn)) return;
+    const nama = await Modal.prompt({
+      title: 'Label baru',
+      label: 'Nama label',
+      placeholder: 'cth: Pelanggan Lama',
+    });
+    if (!nama) return;
+
+    UI.btnBusy(btn, true, 'Membuat…');
+    try {
+      const dibuat = await ContactHTTP.post('/api/labels', { name: nama });
+      labelsCache = [...labelsCache, dibuat];
+      renderFormLabels();
+      // Tandai terpilih SETELAH render — elemen chip-nya baru ada setelah itu.
+      const chipBaru = document.querySelector(
+        `#ct-form-labels .ct-lbl-pick[data-id="${CSS.escape(dibuat.id)}"]`
+      );
+      if (chipBaru) chipBaru.classList.add('on');
+      toast(`Label "${dibuat.name}" dibuat`, 'ok');
+    } catch (err) {
+      toast(err, 'error');
+    } finally {
+      UI.btnBusy(btn, false);
+    }
+  }
+
+  function labelTerpilihDiForm() {
+    return [...document.querySelectorAll('#ct-form-labels .ct-lbl-pick.on')].map((b) => b.dataset.id);
+  }
+
+  function closeForm() {
+    formDlg?.close(); // handler 'close' yang membuang elemennya
+  }
+
   function clearForm() {
     ['ct-name', 'ct-phone', 'ct-email', 'ct-address', 'ct-notes'].forEach((id) => {
       const el = document.getElementById(id);
@@ -438,9 +588,26 @@ const Contacts = (() => {
       if (address) body.address = address;
       if (notes) body.notes = notes;
 
-      await ContactHTTP.post('/api/contacts', body);
-      toast('Kontak ditambahkan', 'ok');
+      const dibuat = await ContactHTTP.post('/api/contacts', body);
+
+      // Label dipasang di request KEDUA — endpoint create tidak menerimanya.
+      // Kontaknya sudah jadi, jadi kegagalan di sini tidak boleh tampil sebagai
+      // "gagal menyimpan kontak": yang gagal hanya labelnya, dan itu bisa
+      // diperbaiki lewat tombol Label di daftar.
+      const label = labelTerpilihDiForm();
+      let labelGagal = null;
+      if (label.length && dibuat && dibuat.id) {
+        try {
+          await ContactHTTP.put(`/api/contacts/${dibuat.id}/labels`, { label_ids: label });
+        } catch (e) {
+          labelGagal = e;
+        }
+      }
+
+      toast(labelGagal ? 'Kontak ditambahkan, tapi labelnya gagal dipasang' : 'Kontak ditambahkan',
+            labelGagal ? 'error' : 'ok');
       clearForm();
+      closeForm(); // gagal simpan → dialog dibiarkan terbuka agar isian tidak hilang
       await load();
     } catch (err) {
       toast(err, 'error');
@@ -995,6 +1162,8 @@ const Contacts = (() => {
   return {
     load,
     save,
+    openForm,
+    closeForm,
     remove,
     clearForm,
     renderDetailPage,
