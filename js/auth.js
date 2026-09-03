@@ -216,9 +216,29 @@ const Auth = (() => {
     }
   }
 
+  /**
+   * Kegagalan refresh ini berarti kredensialnya MEMANG mati?
+   *
+   * Pembedaan yang menentukan. Kalau semua kegagalan diperlakukan sama, satu
+   * kedipan account-service akan memusnahkan refresh token yang masih berlaku
+   * tujuh hari dan melempar pengguna ke layar login — untuk masalah yang bukan
+   * miliknya. Ini kekeliruan yang sama seperti backend yang membalas 401 untuk
+   * gangguannya sendiri.
+   *
+   * account-service membalas 401 untuk refresh token yang dicabut, kedaluwarsa,
+   * maupun cacat (diverifikasi langsung ke service-nya). Selain itu:
+   *   - 5xx / 429  → gangguan di sisi sana, tokennya belum tentu salah
+   *   - tanpa status → fetch melempar: jaringan/CORS, bahkan belum sampai
+   */
+  function kredensialDitolak(err) {
+    if (!err || typeof err.status !== 'number') return false;
+    return err.status === 400 || err.status === 401 || err.status === 403;
+  }
+
   return {
     discover,
     getJson,
+    kredensialDitolak,
     base,
     login,
     logout,

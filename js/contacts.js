@@ -60,10 +60,24 @@ const Contacts = (() => {
         if (err.status !== 401 || Auth.disabled()) throw err;
         try {
           await Auth.refresh();
-        } catch (_) {
-          Auth.clear();
-          Session.requireLogin('Sesi berakhir, silakan masuk lagi');
-          throw err;
+        } catch (gagalRefresh) {
+          // HANYA buang kredensial bila account-service memang MENOLAKNYA.
+          // Gangguan di sisi sana (5xx, 429) atau jaringan yang putus bukan alasan
+          // memusnahkan refresh token yang masih berlaku tujuh hari.
+          if (Auth.kredensialDitolak(gagalRefresh)) {
+            Auth.clear();
+            Session.requireLogin('Sesi berakhir, silakan masuk lagi');
+            throw err;
+          }
+          // Kredensial dibiarkan utuh — percobaan berikutnya bisa berhasil.
+          // Error 401 yang asli sengaja TIDAK diteruskan: ia terbaca "kamu tidak
+          // berhak", padahal yang bermasalah server autentikasinya.
+          const e = new Error(
+            'Tidak bisa memperbarui sesi — server autentikasi sedang bermasalah. Coba lagi sebentar lagi.'
+          );
+          e.status = 503;
+          e.penyebab = gagalRefresh.message;
+          throw e;
         }
         return sekaliJalan(method, path, body);
       }
