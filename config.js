@@ -136,3 +136,39 @@ function defaultDelaySeconds() {
 function defaultRatePerMinute() {
   return Math.max(1, Math.round(60 / defaultDelaySeconds()));
 }
+
+/**
+ * window.WA_DEFAULT_COUNTRY_CODE = kode negara untuk nomor berformat lokal.
+ *
+ * Harus SAMA dengan DEFAULT_COUNTRY_CODE di wa-bot-service. Kalau berbeda,
+ * frontend dan backend menghasilkan nomor yang berlainan dari input yang sama —
+ * dedup di layar tidak cocok dengan dedup di server, dan pengguna melihat
+ * jumlah tujuan yang berubah setelah dikirim.
+ *
+ *     localStorage.setItem('WA_DEFAULT_COUNTRY_CODE', '60')
+ *     localStorage.setItem('WA_DEFAULT_COUNTRY_CODE', '')   // matikan konversi
+ */
+window.WA_DEFAULT_COUNTRY_CODE = (() => {
+  try {
+    const override = localStorage.getItem('WA_DEFAULT_COUNTRY_CODE');
+    if (override !== null) return override.replace(/\D/g, '');
+  } catch (_) {
+    // localStorage bisa diblokir (mode privat) → pakai default
+  }
+  return '62';
+})();
+
+/**
+ * Normalisasi nomor ke format internasional tanpa '+'.
+ * Cerminan normalizePhone() di wa-bot-service — keduanya HARUS sama.
+ */
+function normalisasiNomor(raw) {
+  const digit = String(raw ?? '').replace(/\D/g, '');
+  const kode = window.WA_DEFAULT_COUNTRY_CODE;
+  if (!kode || !digit.startsWith('0')) return digit;
+  return kode + digit.slice(1);
+}
+
+/** Pemisah tujuan: koma, titik koma, baris baru — BUKAN spasi.
+ *  Spasi lebih sering memisah bagian DALAM satu nomor ('0812 3456 7890'). */
+const PEMISAH_NOMOR = /[,;\n\r]+/;

@@ -121,12 +121,12 @@ const Broadcast = (() => {
 
   /** Mirror validasi backend: digit saja, 8–15 digit. */
   function isValidNumber(raw) {
-    return /^\d{8,15}$/.test(String(raw).replace(/\D/g, ''));
+    return /^\d{8,15}$/.test(normalisasiNomor(raw));
   }
 
   function parseRowsFromTextarea() {
     recipientRows = String(document.getElementById('bc-recipients').value)
-      .split(/[,;\s]+/)
+      .split(PEMISAH_NOMOR)
       .map((x) => x.trim())
       .filter(Boolean);
   }

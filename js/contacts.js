@@ -115,8 +115,11 @@ const Contacts = (() => {
   let detailLabels = [];
 
   /** Digit saja — dipakai untuk dedup & untuk mengisi form broadcast. */
+  // Ikut menormalisasi awalan lokal, bukan sekadar membuang non-digit.
+  // Dipakai untuk dedup dan pencocokan: tanpa ini '08...' dan '628...' dianggap
+  // dua orang berbeda, padahal server memperlakukannya sebagai satu.
   function digitsOf(phone) {
-    return String(phone || '').replace(/\D/g, '');
+    return normalisasiNomor(phone);
   }
 
   /** Mirror validasi wa-bot-service: 8–15 digit. */
