@@ -1507,10 +1507,26 @@ body.login-active { overflow: hidden; }
 
 /* ===================== Dialog tambah kontak ===================== */
 
-.ct-actions {
+/* Kepala halaman: judul di kiri, aksi utama di kanan.
+   TIDAK memakai nama .ct-actions — nama itu sudah dipakai <td> aksi di tabel
+   kontak, dan aturan flex di sini sempat membuat sel tabel keluar dari tata
+   letak table-cell: tingginya menyusut 18px dari barisnya, sehingga garis
+   pemisah kolom terakhir tidak sejajar dengan kolom lain di SETIAP baris. */
+.page-head {
   display: flex;
-  justify-content: flex-end;
-  margin: 0 0 18px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 22px;
+}
+.page-head > div { min-width: 0; }
+.page-head h2 { margin-bottom: 6px; }
+.page-head p { margin: 0; }
+.page-head > .btn { flex: none; margin-top: 4px; }
+
+@media (max-width: 720px) {
+  .page-head { flex-direction: column; gap: 14px; }
+  .page-head > .btn { align-self: flex-start; }
 }
 
 /* .modal dibatasi 440px — terlalu sempit untuk form dua kolom.

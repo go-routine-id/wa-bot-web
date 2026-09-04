@@ -139,15 +139,17 @@
 
     <!-- ============ Kontak ============ -->
     <section id="tab-contacts" class="tab-section">
-      <h2>Kontak</h2>
-      <p class="muted">Simpan nomor sekali, pakai berulang kali. Kelompokkan dengan label supaya bisa dibroadcast per kelompok.</p>
+      <div class="page-head">
+        <div>
+          <h2>Kontak</h2>
+          <p class="muted">Simpan nomor sekali, pakai berulang kali. Kelompokkan dengan label supaya bisa dibroadcast per kelompok.</p>
+        </div>
+        <button class="btn primary" onclick="Contacts.openForm()">+ Tambah Kontak</button>
+      </div>
 
       <div id="ct-detail" class="hidden"></div>
 
       <div id="ct-list-view">
-      <div class="ct-actions">
-        <button class="btn primary" onclick="Contacts.openForm()">+ Tambah Kontak</button>
-      </div>
 
       <div class="ct-labels-head">
         <h3>Label</h3>
