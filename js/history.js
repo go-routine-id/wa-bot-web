@@ -187,12 +187,12 @@ const History = (() => {
       .map(
         (r) => `
       <tr>
-        <td>${escapeHtml(r.recipientNumber)}</td>
-        <td><span class="badge badge-${r.status}">${r.status}</span></td>
-        <td class="col-wrap">${escapeHtml(r.error || '')}</td>
-        <td class="col-time" title="${escapeHtml(fmtTime(r.sentAt))}">${escapeHtml(fmtTimeShort(r.sentAt))}</td>
+        <td class="c-id">${escapeHtml(r.recipientNumber)}</td>
+        <td class="c-status"><span class="badge badge-${r.status}">${r.status}</span></td>
+        <td class="col-wrap" data-label="Error">${escapeHtml(r.error || '')}</td>
+        <td class="col-time" data-label="Dikirim" title="${escapeHtml(fmtTime(r.sentAt))}">${escapeHtml(fmtTimeShort(r.sentAt))}</td>
         ${editable
-          ? `<td><button class="btn small danger" onclick="History.removeRecipient(${b.id}, ${r.id}, this)">Hapus</button></td>`
+          ? `<td class="c-actions"><button class="btn small danger" onclick="History.removeRecipient(${b.id}, ${r.id}, this)">Hapus</button></td>`
           : ''}
       </tr>`
       )
@@ -229,7 +229,7 @@ const History = (() => {
            </div>
            <p class="muted hint-edit">Daftar nomor masih bisa diubah karena broadcast belum diproses.</p>`
         : ''}
-      <div class="table-wrap">
+      <div class="table-wrap cards">
       <table>
         <thead><tr><th>Nomor</th><th>Status</th><th>Error</th><th>Dikirim</th>${editable ? '<th>Aksi</th>' : ''}</tr></thead>
         <tbody>${rows}</tbody>

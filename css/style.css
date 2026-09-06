@@ -998,6 +998,22 @@ blockquote {
     letter-spacing: 0.06em;
     color: var(--muted);
   }
+  /* Sel kosong (mis. kolom error saat pengiriman berhasil) dibuang sama sekali —
+     kalau tidak, yang tersisa cuma label menggantung tanpa nilai. */
+  .table-wrap.cards > table td:empty { display: none; }
+  /* Teks panjang (pesan error): label di atas, isinya rata kiri di bawahnya.
+     Berdampingan seperti sel lain membuatnya terhimpit jadi kolom sempit. */
+  .table-wrap.cards > table td.col-wrap {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    min-width: 0;
+  }
+  .table-wrap.cards > table td.c-id {
+    /* Nomor tujuan bisa 13 digit — biarkan memakai ruang yang tersisa. */
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
   /* Kepala kartu: nomor di kiri, badge status di kanan, dipisah garis emas. */
   .table-wrap.cards > table td.c-id,
   .table-wrap.cards > table td.c-status {
