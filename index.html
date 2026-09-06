@@ -13,13 +13,15 @@
 <body>
   <aside class="sidebar">
     <div class="brand">📣 WA Broadcast</div>
+    <!-- data-short = label ringkas untuk bar tab bawah di layar HP (CSS
+         menampilkannya lewat attr()); .tab-txt = label penuh di sidebar. -->
     <nav class="tabs">
-      <a class="tab-btn active" data-tab="connection" href="/sessions"><span class="tab-ico">🔗</span>Sesi WhatsApp</a>
-      <a class="tab-btn" data-tab="create" href="/create"><span class="tab-ico">📣</span>Buat Broadcast</a>
-      <a class="tab-btn" data-tab="templates" href="/templates"><span class="tab-ico">📝</span>Template</a>
-      <a class="tab-btn" data-tab="contacts" href="/contacts"><span class="tab-ico">📇</span>Kontak</a>
-      <a class="tab-btn" data-tab="history" href="/history"><span class="tab-ico">🕘</span>History</a>
-      <a class="tab-btn" data-tab="profile" href="/profile"><span class="tab-ico">👤</span>Profil</a>
+      <a class="tab-btn active" data-tab="connection" data-short="Sesi" href="/sessions"><span class="tab-ico">🔗</span><span class="tab-txt">Sesi WhatsApp</span></a>
+      <a class="tab-btn" data-tab="create" data-short="Broadcast" href="/create"><span class="tab-ico">📣</span><span class="tab-txt">Buat Broadcast</span></a>
+      <a class="tab-btn" data-tab="templates" data-short="Template" href="/templates"><span class="tab-ico">📝</span><span class="tab-txt">Template</span></a>
+      <a class="tab-btn" data-tab="contacts" data-short="Kontak" href="/contacts"><span class="tab-ico">📇</span><span class="tab-txt">Kontak</span></a>
+      <a class="tab-btn" data-tab="history" data-short="History" href="/history"><span class="tab-ico">🕘</span><span class="tab-txt">History</span></a>
+      <a class="tab-btn" data-tab="profile" data-short="Profil" href="/profile"><span class="tab-ico">👤</span><span class="tab-txt">Profil</span></a>
     </nav>
     <div class="sidebar-foot" id="who" hidden>
       <button class="who-name" type="button" title="Lihat profil"

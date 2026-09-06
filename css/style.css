@@ -867,43 +867,73 @@ blockquote {
 /* ---------- Responsive: sidebar → topbar horizontal ---------- */
 @media (max-width: 860px) {
   body { display: block; }
-  /* Dua baris: brand + identitas pengguna di atas, tab lebar penuh di bawah.
-     Satu baris tidak cukup — tab (satu-satunya yang boleh menyusut) tertekan
-     sampai ~34px di 390px sehingga navigasi praktis hilang. */
+  /* Topbar satu baris: brand + identitas pengguna. Navigasi TIDAK di sini —
+     enam tab tidak pernah muat di satu baris HP (tergulung/terpotong dan
+     terbaca rusak), jadi tab dipindah ke bar tetap di bawah layar. */
   .sidebar {
     flex-direction: row;
-    flex-wrap: wrap;
     align-items: center;
-    gap: 8px 16px;
+    gap: 12px;
     width: auto;
     height: auto;
-    padding: 12px 16px 8px;
+    padding: 10px 16px;
     position: sticky;
     top: 0;
     box-shadow: 0 4px 20px rgba(8, 46, 39, 0.35);
   }
   .brand { padding: 0; font-size: 16px; white-space: nowrap; }
-  .tabs {
-    order: 3;
-    flex: 1 0 100%;
-    flex-direction: row;
-    gap: 4px;
-    overflow-x: auto;
-    /* Tembus ke tepi layar supaya tab yang tergulung terlihat terpotong —
-       isyarat bahwa barisnya bisa digeser. */
-    margin: 0 -16px;
-    padding: 0 16px;
-    scrollbar-width: none;
-  }
-  .tabs::-webkit-scrollbar { display: none; }
-  .tab-btn { padding: 8px 12px; white-space: nowrap; }
-  .tab-btn:hover { transform: none; }
-  .tab-btn.active { box-shadow: inset 0 -3px 0 var(--gold); }
-  .tab-ico { display: none; }
   /* Selector diperkuat (.sidebar .sidebar-foot): definisi .sidebar-foot di
      bagian profil ada DI BAWAH blok ini dan akan menang kalau specificity sama. */
-  .sidebar .sidebar-foot { margin: 0 0 0 auto; padding-top: 0; border-top: 0; }
-  main { padding: 24px 16px 48px; }
+  .sidebar .sidebar-foot { flex: 1; min-width: 0; justify-content: flex-end; margin: 0; padding-top: 0; border-top: 0; }
+  .who-name { flex: 0 1 auto; }
+
+  /* Bar tab bawah: ikon + label ringkas (data-short), enam tab berbagi lebar
+     rata sehingga semuanya selalu terlihat tanpa digeser. */
+  .tabs {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 60;
+    flex-direction: row;
+    gap: 2px;
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px));
+    background: linear-gradient(180deg, #0b3f35, #082e27);
+    border-top: 1px solid rgba(233, 217, 166, 0.22);
+    box-shadow: 0 -4px 20px rgba(8, 46, 39, 0.35);
+  }
+  .tab-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    padding: 6px 1px;
+    border-radius: var(--radius-sm);
+    /* Ukuran font ikut lebar layar: di 320px pun keenam label tetap utuh,
+       tidak ada yang terpotong jadi elipsis. */
+    font-size: clamp(9px, 2.7vw, 11px);
+    letter-spacing: -0.01em;
+    color: rgba(255, 255, 255, 0.66);
+  }
+  .tab-btn:hover { transform: none; }
+  .tab-ico { font-size: 19px; }
+  .tab-txt { display: none; }
+  .tab-btn::after {
+    content: attr(data-short);
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* Aktif: garis emas pendek di atas ikon, pengganti garis kiri di sidebar. */
+  .tab-btn.active {
+    backdrop-filter: none;
+    border-color: transparent;
+    box-shadow: inset 0 2px 0 var(--gold);
+  }
+  /* Ruang bawah untuk bar tab supaya konten terakhir tidak tertutup. */
+  main { padding: 20px 16px calc(88px + env(safe-area-inset-bottom, 0px)); }
   /* Tabel di layar sempit: beri lebar dasar supaya kolom tidak memecah kata
      per baris; sisanya digulung di dalam .table-wrap. */
   .table-wrap > table { min-width: 720px; }
