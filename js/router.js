@@ -56,12 +56,21 @@ const Router = (() => {
     Contacts.renderDetailPage(id);
   }
 
-  /** Buka halaman detail broadcast: pushState ke /history/:id lalu render detail. */
+  /**
+   * Buka halaman detail broadcast: pushState ke /history/:id lalu render detail.
+   *
+   * showTab dipanggil supaya pemanggil dari tab lain (mis. setelah kirim
+   * broadcast dari tab Buat) ikut berpindah section, bukan cuma URL-nya yang
+   * berubah. Urutannya penting: pushState DULU, baru showTab — History.load()
+   * membaca URL dan sengaja tidak merender list saat path-nya /history/:id,
+   * sehingga list tidak sempat berkedip menimpa detail.
+   */
   function goDetail(id) {
     const path = `/history/${id}`;
     if (window.location.pathname !== path) {
       window.history.pushState({ detailId: id }, '', path);
     }
+    App.showTab('history');
     History.renderDetailPage(id);
   }
 

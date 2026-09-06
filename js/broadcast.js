@@ -379,8 +379,10 @@ const Broadcast = (() => {
       clearRecipientRows(); // ikut mengosongkan textarea + daftar baris
       document.getElementById('bc-message').value = '';
       document.getElementById('bc-image').value = '';
-      // Pindah ke tab history (URL ikut berubah ke /history)
-      Router.navigate('history');
+      // Langsung ke halaman detail broadcast yang baru dibuat (/history/:id) —
+      // di situlah progres pengirimannya terlihat, tanpa perlu mencarinya lagi
+      // di list. Tombol "← Kembali ke list" tetap tersedia di halaman itu.
+      Router.goDetail(created.id);
     } catch (err) {
       toast(err, 'error');
     } finally {
