@@ -389,10 +389,12 @@ const Contacts = (() => {
         : '';
 
     el.innerHTML = `
+      <div class="table-wrap">
       <table>
         <thead><tr><th></th><th>Nama</th><th>Nomor</th><th>Email</th><th>Catatan</th><th>Diupdate</th><th>Aksi</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
+      </div>
       ${pager}`;
 
     el.onclick = (e) => {

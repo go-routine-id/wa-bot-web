@@ -125,12 +125,14 @@ const History = (() => {
       )
       .join('');
     el.innerHTML = `
+      <div class="table-wrap">
       <table>
         <thead>
           <tr><th>ID</th><th>Status</th><th>Sesi</th><th>Mode</th><th>Rate</th><th>Sent/Fail/Total</th><th>Dibuat</th><th>Aksi</th></tr>
         </thead>
         <tbody>${rows}</tbody>
-      </table>`;
+      </table>
+      </div>`;
   }
 
   /** Dari list: buka halaman detail (URL berubah ke /history/:id). */
@@ -187,7 +189,7 @@ const History = (() => {
       <tr>
         <td>${escapeHtml(r.recipientNumber)}</td>
         <td><span class="badge badge-${r.status}">${r.status}</span></td>
-        <td>${escapeHtml(r.error || '')}</td>
+        <td class="col-wrap">${escapeHtml(r.error || '')}</td>
         <td class="col-time" title="${escapeHtml(fmtTime(r.sentAt))}">${escapeHtml(fmtTimeShort(r.sentAt))}</td>
         ${editable
           ? `<td><button class="btn small danger" onclick="History.removeRecipient(${b.id}, ${r.id}, this)">Hapus</button></td>`
@@ -227,10 +229,12 @@ const History = (() => {
            </div>
            <p class="muted hint-edit">Daftar nomor masih bisa diubah karena broadcast belum diproses.</p>`
         : ''}
+      <div class="table-wrap">
       <table>
         <thead><tr><th>Nomor</th><th>Status</th><th>Error</th><th>Dikirim</th>${editable ? '<th>Aksi</th>' : ''}</tr></thead>
         <tbody>${rows}</tbody>
-      </table>`;
+      </table>
+      </div>`;
 
     // Kembalikan isi & fokus input supaya ketikan user tidak hilang saat polling.
     if (editable) {

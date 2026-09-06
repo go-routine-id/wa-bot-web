@@ -223,7 +223,7 @@ input[type="file"] { padding: 6px 0; font-size: 13px; }
 textarea { resize: vertical; }
 
 .row { display: flex; gap: 16px; }
-.row.actions { margin-top: 18px; align-items: center; }
+.row.actions { margin-top: 18px; align-items: center; flex-wrap: wrap; }
 .col { flex: 1; }
 
 /* ---------- Buttons ---------- */
@@ -237,6 +237,7 @@ textarea { resize: vertical; }
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap; /* label tombol tidak boleh pecah jadi pil bertingkat; biarkan induk yang wrap */
   transition: transform var(--dur) var(--ease-spring), box-shadow var(--dur), background var(--dur), border-color var(--dur);
 }
 .btn:hover { background: #f6f4ee; transform: translateY(-1px); box-shadow: var(--shadow-sm); }
@@ -263,6 +264,7 @@ textarea { resize: vertical; }
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: 3px 4px 3px 12px;
+  flex-wrap: wrap; /* di layar sempit pil "Detik/Rate" turun ke baris kedua, angkanya tetap terlihat */
   transition: border-color var(--dur), box-shadow var(--dur);
 }
 .speed-input-group:focus-within {
@@ -272,6 +274,7 @@ textarea { resize: vertical; }
 .speed-input-inline {
   position: relative;
   flex: 1;
+  min-width: 150px; /* angka + satuan; tanpa ini input dihimpit pil sampai lebar 0 */
   display: flex;
   align-items: center;
 }
@@ -296,6 +299,7 @@ textarea { resize: vertical; }
 }
 .speed-pill-toggle {
   display: inline-flex;
+  margin-left: auto;
   background: #f4f2ec;
   padding: 3px;
   border-radius: var(--radius-sm);
@@ -331,6 +335,7 @@ textarea { resize: vertical; }
 /* Tambah nomor di detail history (hanya saat broadcast belum diproses) */
 .recipient-add {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   align-items: center;
   margin: 16px 0 6px;
@@ -470,8 +475,21 @@ th {
   text-transform: uppercase;
   letter-spacing: 0.07em;
   color: var(--muted);
+  white-space: nowrap; /* judul kolom jangan pecah dua baris saat sempit */
   border-bottom-color: var(--gold-soft); /* pemisah kepala tabel: garis emas tipis */
 }
+/* Pembungkus tabel (JS merender <table> di dalam .table-wrap). Bingkai, radius,
+   dan bayangan pindah ke sini supaya tabel di dalamnya bebas lebih lebar dari
+   layar dan di-scroll ke samping SENDIRI — bukan menyeret seluruh halaman. */
+.table-wrap {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.table-wrap > table { border: 0; border-radius: 0; box-shadow: none; }
 tbody tr { transition: background var(--dur); }
 tbody td { transition: box-shadow var(--dur); }
 tbody tr:hover { background: #faf8f3; }
@@ -824,7 +842,7 @@ blockquote {
   border-radius: 999px;
   transition: width 0.5s;
 }
-.detail-head { display: flex; align-items: center; gap: 16px; }
+.detail-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
 .detail-img { max-width: 220px; border-radius: var(--radius-md); margin: 8px 0; box-shadow: var(--shadow-sm); }
 .preview-img { max-width: 160px; max-height: 120px; border-radius: var(--radius-sm); margin-top: 6px; box-shadow: var(--shadow-sm); }
 .toast {
@@ -849,24 +867,60 @@ blockquote {
 /* ---------- Responsive: sidebar → topbar horizontal ---------- */
 @media (max-width: 860px) {
   body { display: block; }
+  /* Dua baris: brand + identitas pengguna di atas, tab lebar penuh di bawah.
+     Satu baris tidak cukup — tab (satu-satunya yang boleh menyusut) tertekan
+     sampai ~34px di 390px sehingga navigasi praktis hilang. */
   .sidebar {
     flex-direction: row;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 16px;
+    gap: 8px 16px;
     width: auto;
     height: auto;
-    padding: 12px 16px;
+    padding: 12px 16px 8px;
     position: sticky;
     top: 0;
     box-shadow: 0 4px 20px rgba(8, 46, 39, 0.35);
   }
   .brand { padding: 0; font-size: 16px; white-space: nowrap; }
-  .tabs { flex-direction: row; gap: 4px; overflow-x: auto; }
+  .tabs {
+    order: 3;
+    flex: 1 0 100%;
+    flex-direction: row;
+    gap: 4px;
+    overflow-x: auto;
+    /* Tembus ke tepi layar supaya tab yang tergulung terlihat terpotong —
+       isyarat bahwa barisnya bisa digeser. */
+    margin: 0 -16px;
+    padding: 0 16px;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
   .tab-btn { padding: 8px 12px; white-space: nowrap; }
   .tab-btn:hover { transform: none; }
   .tab-btn.active { box-shadow: inset 0 -3px 0 var(--gold); }
   .tab-ico { display: none; }
+  /* Selector diperkuat (.sidebar .sidebar-foot): definisi .sidebar-foot di
+     bagian profil ada DI BAWAH blok ini dan akan menang kalau specificity sama. */
+  .sidebar .sidebar-foot { margin: 0 0 0 auto; padding-top: 0; border-top: 0; }
   main { padding: 24px 16px 48px; }
+  /* Tabel di layar sempit: beri lebar dasar supaya kolom tidak memecah kata
+     per baris; sisanya digulung di dalam .table-wrap. */
+  .table-wrap > table { min-width: 720px; }
+  .table-wrap > table td { white-space: nowrap; }
+  /* Kolom teks panjang (isi pesan template, pesan error) — satu-satunya yang
+     boleh wrap; diberi lebar dasar supaya tidak dipaksa jadi kolom sempit. */
+  .table-wrap > table td.col-wrap { white-space: normal; min-width: 240px; }
+}
+
+/* ---------- Responsive: dua kolom jadi bertumpuk ---------- */
+@media (max-width: 640px) {
+  /* .row.actions dikecualikan — barisan tombol cukup wrap, bukan bertumpuk. */
+  .row:not(.actions) { flex-direction: column; gap: 0; }
+  .seg { display: flex; width: 100%; }
+  .seg-opt { flex: 1; justify-content: center; padding: 9px 12px; }
+  .picker-filters { flex-wrap: wrap; }
+  .picker-filters .cs, .picker-filters select { flex: 1 1 100%; }
 }
 
 /* ---------- Loading & state (spinner, skeleton, empty/error) ---------- */
@@ -1029,9 +1083,10 @@ blockquote {
 /* ---------- Kontak ---------- */
 .label-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 6px 12px;
 }
 .label-row label { margin-bottom: 0; }
 
@@ -1361,6 +1416,9 @@ blockquote {
 .modal-select-wrap .cs-panel { z-index: 60; }
 /* Kolom aksi tabel template: tombol harus sebaris, bukan membungkus ke bawah. */
 .tpl-actions { white-space: nowrap; }
+/* Kolom teks panjang di tabel (isi pesan, error): penanda bagi aturan layar
+   sempit bahwa kolom ini boleh wrap — lihat blok @media (max-width: 860px). */
+.col-wrap { min-width: 0; }
 /* Kolom waktu di tabel: jangan pernah membungkus jadi dua baris. */
 .col-time { white-space: nowrap; color: var(--muted); }
 

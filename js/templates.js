@@ -30,7 +30,7 @@ const Templates = (() => {
         (t) => `
       <tr>
         <td>${escapeHtml(t.name)}</td>
-        <td>${escapeHtml(truncate(t.textContent, 80))}</td>
+        <td class="col-wrap">${escapeHtml(truncate(t.textContent, 80))}</td>
         <td>${t.mediaPath ? '🖼️ ada' : '—'}</td>
         <td class="col-time" title="${escapeHtml(fmtTime(t.updatedAt))}">${escapeHtml(fmtTimeShort(t.updatedAt))}</td>
         <td class="tpl-actions">
@@ -41,10 +41,12 @@ const Templates = (() => {
       )
       .join('');
     el.innerHTML = `
+      <div class="table-wrap">
       <table>
         <thead><tr><th>Nama</th><th>Isi pesan</th><th>Gambar</th><th>Diupdate</th><th>Aksi</th></tr></thead>
         <tbody>${rows}</tbody>
-      </table>`;
+      </table>
+      </div>`;
   }
 
   function clearForm() {

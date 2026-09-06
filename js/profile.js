@@ -105,6 +105,7 @@ const Profile = (() => {
           ? `<div class="card">
               <h3>Organisasi lain yang kamu ikuti</h3>
               <p class="muted pf-note">Aplikasi ini memakai organisasi bawaan akunmu; berpindah organisasi dilakukan di account-service.</p>
+              <div class="table-wrap">
               <table>
                 <thead><tr><th>Nama</th><th>Peran</th><th>Anggota</th></tr></thead>
                 <tbody>${lain
@@ -114,6 +115,7 @@ const Profile = (() => {
                   )
                   .join('')}</tbody>
               </table>
+              </div>
             </div>`
           : ''
       }
