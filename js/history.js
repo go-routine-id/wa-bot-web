@@ -105,14 +105,14 @@ const History = (() => {
       .map(
         (b) => `
       <tr>
-        <td>#${b.id}</td>
-        <td><span class="badge badge-${b.status}">${b.status}</span></td>
-        <td>${escapeHtml(b.sessionName || '—')}</td>
-        <td>${b.mode}</td>
-        <td>${b.ratePerMinute}/mnt</td>
-        <td>${b.sentCount} / ${b.failedCount} / ${b.totalRecipients}</td>
-        <td class="col-time" title="${escapeHtml(fmtTime(b.createdAt))}">${escapeHtml(fmtTimeShort(b.createdAt))}</td>
-        <td>
+        <td class="c-id">#${b.id}</td>
+        <td class="c-status"><span class="badge badge-${b.status}">${b.status}</span></td>
+        <td data-label="Sesi">${escapeHtml(b.sessionName || '—')}</td>
+        <td data-label="Mode">${b.mode}</td>
+        <td data-label="Rate">${b.ratePerMinute}/mnt</td>
+        <td data-label="Sent/Fail/Total">${b.sentCount} / ${b.failedCount} / ${b.totalRecipients}</td>
+        <td class="col-time" data-label="Dibuat" title="${escapeHtml(fmtTime(b.createdAt))}">${escapeHtml(fmtTimeShort(b.createdAt))}</td>
+        <td class="c-actions">
           <button class="btn small" onclick="History.openDetail(${b.id})">Detail</button>
           ${b.retryableFailedCount > 0 && ['completed', 'failed'].includes(b.status)
             ? `<button class="btn small" onclick="History.retryFailed(${b.id}, ${b.retryableFailedCount}, this)">Retry gagal (${b.retryableFailedCount})</button>`
@@ -125,7 +125,7 @@ const History = (() => {
       )
       .join('');
     el.innerHTML = `
-      <div class="table-wrap">
+      <div class="table-wrap cards">
       <table>
         <thead>
           <tr><th>ID</th><th>Status</th><th>Sesi</th><th>Mode</th><th>Rate</th><th>Sent/Fail/Total</th><th>Dibuat</th><th>Aksi</th></tr>
