@@ -1868,3 +1868,11 @@ body.login-active { overflow: hidden; }
 }
 .ct-lbl-pick.ct-lbl-new:hover { color: var(--primary); border-color: var(--primary-2); }
 .ct-lbl-kosong { align-self: center; font-size: 13px; }
+
+/* Baris diagnostik chrome per sesi — data on-demand dari GET /api/sessions/:id/chrome */
+.chrome-info {
+  margin: 6px 0 2px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  color: var(--muted);
+}

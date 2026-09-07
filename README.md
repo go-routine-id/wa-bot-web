@@ -94,6 +94,7 @@ akan berubah dengan token baru.
 ### 1. Sesi WhatsApp (tab "Sesi WhatsApp")
 
 - **Satu sesi = satu nomor WhatsApp.** Ketik nama sesi lalu **Tambah Sesi** (cth. `Promo Ramadan` → id `promo-ramadan`). Setiap sesi menampilkan kartu dengan status & QR sendiri.
+- **Diagnostik chrome di tiap kartu**: baris kecil di bawah nama sesi menampilkan `pid · umur · cpu · memori` browser Chromium milik sesi itu — data on-demand dari `GET /api/sessions/:id/chrome` (endpoint terpisah, di-polling 5 detik) sehingga daftar sesi tetap ringan. Baris hanya muncul saat chrome sesi benar-benar hidup.
 - Scan QR dengan WhatsApp di HP (menu: Setelan → Perangkat tertaut → Tautkan perangkat).
   **QR berlaku ~25 detik** — kalau habis, QR hilang dan muncul tombol **Request QR baru** (desain anti pairing-berulang otomatis, demi mengurangi risiko ban).
 - Setelah terhubung: nama & nomor WhatsApp tampil di kartu. Session tersimpan — restart service tidak perlu scan ulang.

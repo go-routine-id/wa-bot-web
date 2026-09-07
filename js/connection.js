@@ -2,12 +2,16 @@
 
 const Connection = (() => {
   let timer = null;       // poll list sesi (2.5s)
+  let chromeTimer = null; // poll diagnostik chrome per sesi (5s, on-demand ke endpoint khusus)
   let countdown = null;   // interval hitung mundur QR semua kartu (1s)
   let sessionsCache = []; // list terakhir dari API
+  const chromeCache = new Map(); // sessionId → metrik chrome terakhir
+  let chromeBusy = false;        // re-entry guard pollChrome — siklus tak boleh tumpuk
 
   function start() {
     if (timer) return;
     timer = setInterval(refresh, 2500);
+    chromeTimer = setInterval(pollChrome, 5000);
   }
 
   async function refresh() {
@@ -70,6 +74,10 @@ const Connection = (() => {
     stopCountdown(); // reset hitung mundur tiap render; branch QR menyalakannya lagi
     const el = document.getElementById('conn-content');
 
+    // Buang cache chrome sesi yang sudah tidak ada di daftar (mis. dihapus user).
+    const liveIds = new Set(sessionsCache.map((s) => s.id));
+    for (const id of chromeCache.keys()) if (!liveIds.has(id)) chromeCache.delete(id);
+
     if (sessionsCache.length === 0) {
       el.innerHTML = `
         <div class="state-box">
@@ -85,6 +93,7 @@ const Connection = (() => {
     if (hasCountdown) startCountdown();
 
     el.innerHTML = `<div class="session-list">${cards}</div>`;
+    applyChrome(); // isi baris diagnostik dari cache tanpa menunggu poll berikutnya
   }
 
   function renderCard(s) {
@@ -101,6 +110,7 @@ const Connection = (() => {
       return `
         <div class="conn-box session-card">
           <div class="session-head"><strong><span class="avatar">${name.charAt(0).toUpperCase()}</span>${name}</strong> ${badge}</div>
+          <div class="chrome-info" id="chrome-${s.id}" hidden></div>
           <p class="muted">Terhubung sebagai <strong>${uname}</strong> (${unumber})</p>
           ${actions([
             `<button class="btn small" onclick="Connection.rename('${s.id}', this)">Rename</button>`,
@@ -114,6 +124,7 @@ const Connection = (() => {
       return `
         <div class="conn-box session-card">
           <div class="session-head"><strong><span class="avatar">${name.charAt(0).toUpperCase()}</span>${name}</strong> ${badge}</div>
+          <div class="chrome-info" id="chrome-${s.id}" hidden></div>
           <h4>Scan QR ini dengan WhatsApp di HP kamu</h4>
           <p class="muted">WhatsApp → Setelan → Perangkat tertaut → Tautkan perangkat</p>
           <img class="qr" src="${s.qrDataUrl}" alt="QR Code">
@@ -134,6 +145,7 @@ const Connection = (() => {
       return `
         <div class="conn-box session-card">
           <div class="session-head"><strong><span class="avatar">${name.charAt(0).toUpperCase()}</span>${name}</strong> ${badge}</div>
+          <div class="chrome-info" id="chrome-${s.id}" hidden></div>
           <h4>Masukkan kode ini di WhatsApp HP kamu</h4>
           <p class="muted">WhatsApp → Setelan → Perangkat tertaut → Tautkan perangkat → <strong>Tautkan dengan nomor telepon</strong></p>
           <p class="pairing-code">${pretty}</p>
@@ -149,6 +161,7 @@ const Connection = (() => {
       return `
         <div class="conn-box session-card">
           <div class="session-head"><strong><span class="avatar">${name.charAt(0).toUpperCase()}</span>${name}</strong> ${badge}</div>
+          <div class="chrome-info" id="chrome-${s.id}" hidden></div>
           <p class="conn-error">⚠️ Autentikasi gagal: ${escapeHtml(s.lastError || '')}</p>
           ${actions([
             `<button class="btn small" onclick="Connection.rescan('${s.id}', this)">Scan ulang QR</button>`,
@@ -161,6 +174,7 @@ const Connection = (() => {
       return `
         <div class="conn-box session-card">
           <div class="session-head"><strong><span class="avatar">${name.charAt(0).toUpperCase()}</span>${name}</strong> ${badge}</div>
+          <div class="chrome-info" id="chrome-${s.id}" hidden></div>
           <p class="conn-error">⚠️ WhatsApp terputus${s.lastError ? ': ' + escapeHtml(s.lastError) : ''}</p>
           ${actions([
             `<button class="btn small" onclick="Connection.rescan('${s.id}', this)">Hubungkan ulang</button>`,
@@ -188,9 +202,67 @@ const Connection = (() => {
     return `
       <div class="conn-box session-card">
         <div class="session-head"><strong><span class="avatar">${name.charAt(0).toUpperCase()}</span>${name}</strong> ${badge}</div>
+          <div class="chrome-info" id="chrome-${s.id}" hidden></div>
         <p class="muted">${s.hasCreds ? 'Menghubungkan ke WhatsApp…' : 'Belum ter-pair — scan QR untuk mengaktifkan sesi.'}</p>
         ${actions(addButtons)}
       </div>`;
+  }
+
+  /**
+   * Diagnostik chrome tiap sesi: fetch on-demand ke GET /:id/chrome tiap 5 detik
+   * (endpoint terpisah sengaja — daftar /api/sessions tetap ringan). Hasilnya
+   * ditulis ke placeholder per kartu lewat applyChrome(), tanpa re-render penuh.
+   * Error (mis. token kedaluwarsa) ditelan allSettled — polling beratnya sudah
+   * ditangani jalur auth global.
+   */
+  async function pollChrome() {
+    if (chromeBusy) return; // siklus sebelumnya belum selesai — lewati, jangan tumpuk request
+    chromeBusy = true;
+    try {
+      const section = document.getElementById('tab-connection');
+      if (!section || !section.classList.contains('active') || sessionsCache.length === 0) return;
+      await Promise.allSettled(
+        sessionsCache.map(async (s) => {
+          try {
+            const data = await API.get(`/api/sessions/${s.id}/chrome`);
+            if (data?.alive) chromeCache.set(s.id, data);
+            else chromeCache.delete(s.id); // chrome mati / belum ada → baris disembunyikan
+          } catch (err) {
+            // 401 sengaja tidak di-spam: dihandle jalur refresh/auth global (api.js).
+            // Selain itu tinggalkan jejak — fitur ini untuk diagnostik, dan "kenapa
+            // barisnya kosong" bagian dari pertanyaan yang mau dijawab.
+            if (err?.status !== 401) console.warn(`[chrome] diag sesi ${s.id}:`, err?.message || err);
+          }
+        })
+      );
+      applyChrome();
+    } finally {
+      chromeBusy = false;
+    }
+  }
+
+  function fmtAge(sec) {
+    sec = Math.max(0, Math.round(sec || 0));
+    if (sec < 60) return `${sec} dtk`;
+    const m = Math.floor(sec / 60);
+    if (m < 60) return `${m} mnt`;
+    return `${Math.floor(m / 60)} j ${m % 60} mnt`;
+  }
+
+  function applyChrome() {
+    for (const s of sessionsCache) {
+      const el = document.getElementById(`chrome-${s.id}`);
+      if (!el) continue;
+      const c = chromeCache.get(s.id);
+      if (!c) {
+        el.hidden = true;
+        continue;
+      }
+      el.textContent =
+        `🖥️ chrome · pid ${c.pid} · umur ${fmtAge(c.ageSec)} · ` +
+        `cpu ${Math.round(c.cpuPercent)}% · mem ${Math.round(c.rssMb)} MB`;
+      el.hidden = false;
+    }
   }
 
   async function add(btn) {
